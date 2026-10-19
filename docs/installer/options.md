@@ -4,15 +4,17 @@ type: reference
 
 # Options
 
-This page lists the options and profiles of `bootstrap.py`, and how it treats each file it installs. The source of truth is `bootstrap.py` and the files in `template/`.
+This page lists the options and profiles of the installer, and how it treats each file it installs. The source of truth is `main.go` and the files in `template/`.
 
 ## Command
 
 ```bash
-python3 bootstrap.py TARGET [OPTIONS]
+go run . TARGET [OPTIONS]
 ```
 
-`TARGET` is the repository to set up. The installer creates the directory if it doesn't exist.
+Run it from the `docs-bootstrap` repository. `TARGET` is the repository to set up. The installer creates the directory if it doesn't exist. Options can come before or after `TARGET`.
+
+The installer includes a copy of the template when you build it. To run it from any directory, install it from the `docs-bootstrap` repository with `go install .`, which puts it in `$(go env GOPATH)/bin`. With that directory on your `PATH`, run `docs-bootstrap TARGET [OPTIONS]`. Reinstall it after the template changes.
 
 ## Options
 
@@ -29,7 +31,7 @@ python3 bootstrap.py TARGET [OPTIONS]
 
 The installer saves every option except `--dry-run`, `--diff`, and `--replace` in `.docs-bootstrap.json`. A later run uses the saved values, unless you give the option again.
 
-The installer exits with status 1 when any file is in conflict, and 0 otherwise.
+The installer exits with status 2 when the command line is invalid, such as an unknown option, a missing `TARGET`, or an unknown `--profile`. It exits with status 1 when any file is in conflict, when it rejects a `--style` or `--replace` value, or when the install fails. Otherwise, it exits with status 0.
 
 ## Profiles
 

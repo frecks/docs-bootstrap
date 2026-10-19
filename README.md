@@ -10,7 +10,7 @@ Set up any repository with a documentation system that agents and people can wri
 ## Quick start
 
 ```bash
-python3 bootstrap.py ../my-repo --profile software
+go run . ../my-repo --profile software
 ```
 
 Use `--profile infrastructure` for repositories that describe servers and networks. Run the same command again later to upgrade: the installer updates files you haven't edited, and keeps the ones you have.
@@ -19,5 +19,5 @@ See [Set up a repository](docs/installer/set-up-a-repository.md), and the rest o
 
 ## Requirements
 
-- Python 3.8 or later, to run the installer and the link check.
-- Vale, Node.js, and `jq`, in the repositories you set up.
+- Go 1.22 or later, to run the installer.
+- Python 3, Vale, Node.js, and `jq`, in the repositories you set up.

@@ -1,4 +1,2 @@
 # Downloaded by `vale sync`; the version is pinned in .vale.ini.
 .vale/styles/Google/
-
-__pycache__/

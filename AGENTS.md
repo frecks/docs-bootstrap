@@ -1,12 +1,12 @@
 # Docs bootstrap
 
-`bootstrap.py` installs a documentation system into other repositories. The system itself is in `template/`, and this repository uses it too.
+The installer in `main.go` installs a documentation system into other repositories. The system itself is in `template/`, and this repository uses it too.
 
-- Change the system in `template/`, not in this repository's installed copy. Then run `python3 bootstrap.py .` to upgrade this repository from it. See `docs/template/change-the-template.md`.
-- Run the tests after any change to `bootstrap.py` or `template/`:
+- Change the system in `template/`, not in this repository's installed copy. Then run `go run . .` to upgrade this repository from it. See `docs/template/change-the-template.md`.
+- Run the tests after any change to the installer or `template/`:
 
   ```bash
-  python3 -m unittest discover -s tests
+  go test ./...
   ```
 
 <!-- docs-bootstrap:begin -->

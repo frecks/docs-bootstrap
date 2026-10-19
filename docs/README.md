@@ -4,7 +4,7 @@ Documentation for Docs bootstrap, grouped by component. Each page has a type: a 
 
 ## Installer
 
-Set up and upgrade repositories with `bootstrap.py`.
+Set up and upgrade repositories with the installer in `main.go`.
 
 | Page | Type |
 | --- | --- |
