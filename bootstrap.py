@@ -20,7 +20,7 @@ import os
 import re
 import sys
 
-VERSION = '0.1.0'
+VERSION = '0.1.1'
 MANIFEST = '.docs-bootstrap.json'
 HERE = os.path.dirname(os.path.abspath(__file__))
 

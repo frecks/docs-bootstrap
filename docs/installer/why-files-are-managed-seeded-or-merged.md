@@ -2,8 +2,6 @@
 type: explanation
 ---
 
-<!-- vale Google.We = NO -->
-
 # Why the installer manages, seeds, or merges each file
 
 This page explains how `bootstrap.py` decides what to do with each file, and why. Read it before you change how the installer treats a file. For the list of files and what happens to each, see [Options](options.md#files).

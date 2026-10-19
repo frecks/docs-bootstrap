@@ -2,8 +2,6 @@
 type: explanation
 ---
 
-<!-- vale Google.We = NO -->
-
 # Why the documentation system works this way
 
 This page explains why {{PROJECT}} documentation uses Diátaxis for structure, a style guide based on Google's, Vale and markdownlint for checks, and a Claude Code hook that runs those checks for agents. Read it before you change any part of the system, so you know what each part protects against. The rules themselves are in the [documentation standards](../standards/README.md), and this page doesn't repeat them.
@@ -48,13 +46,12 @@ The [review checklist](../standards/review-checklist.md) draws on Diátaxis, the
 - **{{STYLE}}:** local rules in `.vale/styles/{{STYLE}}/` for what Google's package doesn't check, such as secrets, draft markers, and minimizing words.
 - **Vale:** Vale's built-in rules, used with the {{STYLE}} vocabulary in `.vale/styles/config/vocabularies/{{STYLE}}/` to enforce the capitalization of product names.
 
-Three settings in `.vale.ini` change what the styles check:
+Four settings in `.vale.ini` change what the styles check:
 
 - `Vale.Spelling = NO` turns off the spell checker. Hostnames, package names, and tool names make it report too many false errors. Product names are still checked through the vocabulary.
 - `BasedOnStyles =` is empty for `docs/standards/`, so Vale doesn't check the standards. They quote bad examples on purpose, and the templates hold placeholders.
 - `Google.OxfordComma = suggestion` lowers the serial comma rule, because it also flags commas that aren't in a list. Review checks serial commas instead.
-
-Explanation pages also allow the word "we" for the people who made a decision. Vale can't read a page's type from frontmatter, so the explanation template turns off `Google.We` with a `<!-- vale Google.We = NO -->` comment instead of a setting in `.vale.ini`.
+- `Google.We = suggestion` lowers the rule against first-person plural words, such as `we` and `our`. Google allows them for the people who maintain a project, so the rule points out each one for review instead of warning.
 
 ### A Markdown linter checks syntax
 

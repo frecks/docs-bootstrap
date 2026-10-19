@@ -2,11 +2,9 @@
 type: explanation
 ---
 
-<!-- vale Google.We = NO -->
-
 # TOPIC
 
-<!-- Template: explanation. Title names the topic or decision, such as "Why the database is PostgreSQL". For a single decision, keep the sections below; for a broader topic, replace them with your own. Delete every Template comment before publishing. Keep the vale comment above the title: it allows "we" for the people who made the decision. -->
+<!-- Template: explanation. Title names the topic or decision, such as "Why the database is PostgreSQL". For a single decision, keep the sections below; for a broader topic, replace them with your own. Delete every Template comment before publishing. -->
 
 <!-- Template: One or two sentences: what this page explains, and why it matters. -->
 

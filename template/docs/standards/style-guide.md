@@ -128,11 +128,11 @@ Use a serial comma, as Google does: "names, paths, and values".
 
 ## "We"
 
-In explanation pages, use "we" for the people who maintain this {{NOUN}} and make its decisions, as in "We chose PostgreSQL because…". Elsewhere, follow Google and address the reader as "you".
+Use "we" only for the people who maintain this {{NOUN}}, as in "We chose PostgreSQL because…", and only where it's clear who that is. Never use "we" to mean the reader and the writer together, as in "Next, we create a user". Address the reader as "you".
 
-**Why:** an explanation page records decisions, and "we" says plainly who made them.
+**Why:** Google says to [use first-person plural pronouns carefully](https://developers.google.com/style/person#use-first-person-plural-pronouns-carefully), not to avoid them. "We" fits best in explanation pages, which record decisions and who made them.
 
-**Enforced by:** Vale (`Google.We`, warning). The explanation template turns the rule off for its page with a `<!-- vale Google.We = NO -->` comment, because Vale can't read the page type.
+**Enforced by:** Vale (`Google.We`, suggestion), and review. The rule points out each "we" without blocking it, so a reviewer can check who it refers to.
 
 ## Spelling
 
