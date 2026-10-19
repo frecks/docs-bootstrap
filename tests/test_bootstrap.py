@@ -68,7 +68,8 @@ class BootstrapTest(unittest.TestCase):
                 for full, text in self.all_text():
                     self.assertNotIn('{{', text, full)
                     if full.endswith('.md'):
-                        # Pages stay free of Vale configuration comments.
+                        # The template doesn't ship Vale comments, so new pages
+                        # don't inherit them. Repositories may still add their own.
                         self.assertNotIn('<!-- vale', text, full)
                 self.assertTrue(os.access(self.path('scripts/docs-lint.sh'), os.X_OK))
                 self.assertEqual(os.readlink(self.path('CLAUDE.md')), 'AGENTS.md')
