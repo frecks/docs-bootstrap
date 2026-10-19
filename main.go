@@ -23,6 +23,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -151,7 +152,13 @@ func readIfExists(path string) (string, bool, error) {
 	if errors.Is(err, fs.ErrNotExist) {
 		return "", false, nil
 	}
-	return string(data), err == nil, err
+	return normalizeNewlines(string(data)), err == nil, err
+}
+
+// normalizeNewlines turns \r\n and \r line endings into \n, so a checkout
+// with CRLF line endings matches the template.
+func normalizeNewlines(text string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(text, "\r\n", "\n"), "\r", "\n")
 }
 
 type options struct {
@@ -228,7 +235,8 @@ func newInstaller(target string, opts options, template fs.FS, dryRun, showDiff 
 		in.oldHashes = map[string]string{}
 	}
 	for _, p := range replace {
-		in.replace[filepath.Clean(p)] = true
+		// Template paths always use slashes.
+		in.replace[path.Clean(filepath.ToSlash(p))] = true
 	}
 	return in
 }
@@ -273,7 +281,7 @@ func (in *installer) run() error {
 		if err != nil {
 			return err
 		}
-		text, err := render(string(raw), in.vars, in.profile)
+		text, err := render(normalizeNewlines(string(raw)), in.vars, in.profile)
 		if err != nil {
 			return fmt.Errorf("%s: %w", relTemplate, err)
 		}
@@ -693,6 +701,11 @@ func run(args []string, stdout, stderr io.Writer) int {
 			return 2
 		}
 		if set.NArg() == 0 {
+			break
+		}
+		// Everything after "--" is positional.
+		if parsed := len(rest) - set.NArg(); parsed > 0 && rest[parsed-1] == "--" {
+			positional = append(positional, set.Args()...)
 			break
 		}
 		positional = append(positional, set.Arg(0))

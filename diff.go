@@ -58,6 +58,9 @@ func unifiedDiff(a, b, fromFile, toFile string) string {
 		for _, line := range lines[from:to] {
 			out.WriteByte(line.op)
 			out.WriteString(line.text)
+			if !strings.HasSuffix(line.text, "\n") {
+				out.WriteString("\n\\ No newline at end of file\n")
+			}
 		}
 		start = end + 1
 	}
@@ -85,6 +88,27 @@ func splitLines(text string) []string {
 
 // diffLines aligns a and b on their longest common subsequence.
 func diffLines(a, b []string) []diffLine {
+	// Lines that match at the start and end are left out of the table.
+	prefix := 0
+	for prefix < len(a) && prefix < len(b) && a[prefix] == b[prefix] {
+		prefix++
+	}
+	suffix := 0
+	for suffix < len(a)-prefix && suffix < len(b)-prefix && a[len(a)-1-suffix] == b[len(b)-1-suffix] {
+		suffix++
+	}
+	var lines []diffLine
+	for _, line := range a[:prefix] {
+		lines = append(lines, diffLine{' ', line})
+	}
+	lines = append(lines, alignLines(a[prefix:len(a)-suffix], b[prefix:len(b)-suffix])...)
+	for _, line := range a[len(a)-suffix:] {
+		lines = append(lines, diffLine{' ', line})
+	}
+	return lines
+}
+
+func alignLines(a, b []string) []diffLine {
 	// common[i][j] is the length of the longest common subsequence of a[i:] and b[j:].
 	common := make([][]int, len(a)+1)
 	for i := range common {

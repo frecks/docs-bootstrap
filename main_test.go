@@ -190,6 +190,23 @@ func TestOptionsMayFollowOrPrecedeTarget(t *testing.T) {
 	}
 }
 
+func TestArgumentsAfterDoubleDashArePositional(t *testing.T) {
+	repo, _ := sampleRepo(t)
+	if code, _ := install(t, "--", repo, "--dry-run"); code != 2 {
+		t.Errorf("exit %d, want 2 for two targets", code)
+	}
+}
+
+func TestCRLFCheckoutIsUnedited(t *testing.T) {
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	guide := path("docs/standards/style-guide.md")
+	write(t, guide, strings.ReplaceAll(read(t, guide), "\n", "\r\n"))
+	if code, out := install(t, repo); code != 0 || !strings.Contains(out, "Already up to date.") {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+}
+
 func TestExistingFilesAreMerged(t *testing.T) {
 	repo, path := sampleRepo(t)
 	write(t, path(".gitignore"), "node_modules/\n")
@@ -357,6 +374,10 @@ func TestUnifiedDiff(t *testing.T) {
 		"@@ -1,5 +1,5 @@\n 1\n-2\n+TWO\n 3\n 4\n 5\n" +
 		"@@ -10,3 +10,4 @@\n 10\n 11\n 12\n+13\n"
 	if got := unifiedDiff(a, b, "a", "b"); got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+	want = "--- a\n+++ b\n@@ -1,2 +1,2 @@\n x\n-y\n\\ No newline at end of file\n+y\n"
+	if got := unifiedDiff("x\ny", "x\ny\n", "a", "b"); got != want {
 		t.Errorf("got:\n%s\nwant:\n%s", got, want)
 	}
 	if got := unifiedDiff(a, a, "a", "b"); got != "" {
