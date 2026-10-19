@@ -1,0 +1,15 @@
+extends: existence
+message: "Remove '%s'. It assumes the task is easy for the reader."
+link: https://developers.google.com/style/word-list#easy
+ignorecase: true
+level: warning
+tokens:
+  - simply
+  - just
+  - easy
+  - easily
+  - obviously
+  - of course
+  - straightforward
+  - trivial
+  - merely

@@ -1,0 +1,26 @@
+// Markdown syntax rules for docs/. Prose style is Vale's job; see .vale.ini.
+// Rule reference: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+{
+  "config": {
+    "default": true,
+    // Headings use # syntax.
+    "heading-style": { "style": "atx" },
+    // Bulleted lists use hyphens.
+    "ul-style": { "style": "dash" },
+    // Write one paragraph per line; editors wrap it.
+    "line-length": false,
+    // Repeated headings are fine under different parents, such as "Verify".
+    "no-duplicate-heading": { "siblings_only": true },
+    // Every numbered list item uses "1.", so inserting a step doesn't renumber the rest.
+    "ol-prefix": { "style": "one" },
+    // Code blocks are fenced with backticks.
+    "code-block-style": { "style": "fenced" },
+    "code-fence-style": { "style": "backtick" },
+    // Italic and bold both use asterisks.
+    "emphasis-style": { "style": "asterisk" },
+    "strong-style": { "style": "asterisk" },
+    // Allow <kbd> for keyboard keys; no other inline HTML.
+    "no-inline-html": { "allowed_elements": ["kbd"] }
+  },
+  "globs": ["docs/**/*.md"]
+}

@@ -1,0 +1,14 @@
+extends: existence
+message: "Finish or remove '%s' before publishing."
+link: docs/standards/style-guide.md#drafts
+level: error
+scope: raw
+tokens:
+  - '\bTODO\b'
+  - '\bTBD\b'
+  - '\bFIXME\b'
+  - '\bXXX\b'
+  - '\[placeholder\]'
+  - 'Lorem ipsum'
+# Vale skips HTML comments, so scripts/docs-lint.sh checks for leftover
+# template instructions instead.

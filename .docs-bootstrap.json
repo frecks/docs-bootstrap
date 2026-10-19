@@ -1,0 +1,32 @@
+{
+  "version": "0.1.1",
+  "options": {
+    "profile": "software",
+    "name": "Docs bootstrap",
+    "audience": null,
+    "date": "2026-10-19",
+    "style": "DocsBootstrap",
+    "noun": "tool"
+  },
+  "files": {
+    ".agents/skills/docs-review/SKILL.md": "9de58e6e6a8967b0f7484a642329b2e9cc35fe3d5dec361f1b95033d78a0acd4",
+    ".agents/skills/docs-write/SKILL.md": "1d99f85f47f139ab995466b4506b928f041cd9fc62ee0fe95a7775f637464df5",
+    ".claude/hooks/docs-lint.sh": "12c450d753dc1f220ae33ee14b89fa1ec761181009343f0b33430f52d2d8826f",
+    ".markdownlint-cli2.jsonc": "3dacd3febd1fe9b6d1c416ee5dd1d4e40afce2462fb342312bca79026c38f197",
+    ".vale.ini": "6f1cb18c0e66c81cd32b1a261c0b4c24fc83688533e3340bf340bab37ddb79c2",
+    ".vale/styles/DocsBootstrap/DraftMarkers.yml": "b0c66a21b76b54bcd2d51f1d56af4c31539d4c7fd1c51a6a6ee48b582d2195c0",
+    ".vale/styles/DocsBootstrap/Minimizing.yml": "e31a3bd4c6a7a02ee0106d8f04cbfb2d95235e65f46ab09a8cc3851314d2b2a3",
+    ".vale/styles/DocsBootstrap/Secrets.yml": "8e8e1ae4bf26c5ab8152da9fb4412a8166159014ae849db22ff8835ddeda2917",
+    ".vale/styles/config/vocabularies/DocsBootstrap/reject.txt": "f837eafa9247deb1bf38eefe97f50c8a7e628f4d7b9b986a1b8b5880d3f80a1a",
+    "docs/standards/README.md": "4aec12489a8857eb6dc6ca28ceac3fa40c2628dfdfff9b9280624b6ce997f6dc",
+    "docs/standards/review-checklist.md": "ec65f598823fb6892e8a9edfdb3a05fc8ec3987c9e6ea0fae4a4c8dbe3a497e7",
+    "docs/standards/structure.md": "e11dde637fb79ed142e6b815117a91dfdef6d97fb6ab8aac4491431ea2e1b805",
+    "docs/standards/style-guide.md": "42e3db7408eafa9347dc460ce5e6f9356cbb9b196504b72cbef5d2d2f9db7e3a",
+    "docs/standards/templates/explanation.md": "973a58a84b2e56e0108a89ac63c53238cc4dfbe4d7b3cb29f504045ba987fd78",
+    "docs/standards/templates/how-to.md": "4a3f6119e54dd02ea0348901ba0a0e34bb3f0c8cccc8af83a8bb854e05c49e8d",
+    "docs/standards/templates/reference.md": "129074449fc37b05bcd47111e66be022e652605246cf1c20b9d7ce80f73c73e0",
+    "docs/standards/templates/tutorial.md": "b3413df21162606ab05b73740e457c197866aa00d76c720005dc8de0129fff1f",
+    "scripts/check-links.py": "1d2dfefa7ac48c2995e809ed6dc524e0e8112e40e3f3715eed126800789afe37",
+    "scripts/docs-lint.sh": "04ddf3e8e334c53c1866644d36c32cb8e9e6cc95629ab9c02b00a5b5770cacf4"
+  }
+}
