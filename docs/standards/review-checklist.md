@@ -34,7 +34,7 @@ The items come from [Diátaxis](https://diataxis.fr/), the [Write the Docs guide
 ## Single source of truth
 
 - [ ] Facts aren't copied from another page. The page links to it instead.
-- [ ] Links between pages are relative, and an anchor in a link to another page matches a heading there. `scripts/docs-lint.sh` checks that linked files exist, but not anchors in other pages.
+- [ ] Links between pages are relative. `scripts/docs-lint.sh` checks that each linked file and anchor exists.
 - [ ] The page is listed in `docs/README.md` with its type, and in its area's `README.md` if there is one.
 
 ## Style judgment

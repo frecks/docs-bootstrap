@@ -4,19 +4,20 @@
 # Usage: scripts/docs-lint.sh [FILE...]
 # With no arguments, checks every Markdown file in docs/.
 #
-# Runs five checks:
+# Runs four checks:
 #   1. Placement and type: each page is in an area directory, and declares
 #      its Diátaxis type in frontmatter.
 #   2. Template instructions: no leftover comments from the templates.
-#   3. Links: relative links point to files that exist (scripts/check-links.py).
-#   4. Vale: prose style (.vale.ini).
-#   5. markdownlint: Markdown syntax (.markdownlint-cli2.jsonc).
+#   3. Vale: prose style (.vale.ini).
+#   4. markdownlint: Markdown syntax, and relative links that point to files
+#      and headings that exist (.markdownlint-cli2.jsonc).
 # Exits non-zero if any check reports an error. Vale warnings and suggestions
 # are printed but don't fail the run.
 
 set -uo pipefail
 
 MARKDOWNLINT_VERSION=0.23.3
+RELATIVE_LINKS_VERSION=5.1.4
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root" || exit 2
@@ -78,9 +79,6 @@ for f in "${files[@]}"; do
 done
 if [ "$template_ok" -eq 1 ]; then echo "OK"; else echo "Delete the Template comments above."; status=1; fi
 
-echo "== Links"
-if python3 -I scripts/check-links.py "${files[@]}"; then echo "OK"; else status=1; fi
-
 echo "== Vale"
 if command -v vale > /dev/null; then
   if [ ! -d .vale/styles/Google ]; then
@@ -95,8 +93,10 @@ fi
 echo "== markdownlint"
 if command -v npx > /dev/null; then
   # The config's globs are ignored when files are passed; ":" prefixes make
-  # these literal paths.
-  if out="$(npx --yes "markdownlint-cli2@${MARKDOWNLINT_VERSION}" --no-globs "${files[@]/#/:}" 2>&1)"; then
+  # these literal paths. The relative-links rule is a separate package.
+  if out="$(npx --yes --package "markdownlint-cli2@${MARKDOWNLINT_VERSION}" \
+    --package "markdownlint-rule-relative-links@${RELATIVE_LINKS_VERSION}" \
+    markdownlint-cli2 --no-globs "${files[@]/#/:}" 2>&1)"; then
     echo "OK"
   else
     grep -v -E '^(markdownlint-cli2 v|Finding:|Linting:|Summary:)' <<< "$out"

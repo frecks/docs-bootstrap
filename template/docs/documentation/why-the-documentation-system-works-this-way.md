@@ -60,11 +60,13 @@ Four settings in `.vale.ini` change what the styles check:
 
 It turns off the line-length rule, so each paragraph is one line and editors wrap it. It allows no inline HTML except `<kbd>`.
 
-`scripts/docs-lint.sh` pins markdownlint-cli2 to a version and runs it through `npx`, so the check needs no separate install beyond Node.js.
+markdownlint also checks links, through the [markdownlint-rule-relative-links](https://github.com/theoludwig/markdownlint-rule-relative-links) rule: each relative link must point to a file that exists, and an anchor must match a heading in that file. A separate link checker would add a dependency, such as Python, and wouldn't check anchors in other pages.
+
+`scripts/docs-lint.sh` pins markdownlint-cli2 and the link rule to versions and runs them through `npx`, so the check needs no separate install beyond Node.js.
 
 ### One script runs every check
 
-`scripts/docs-lint.sh` runs five checks in order: page placement and type, leftover template comments, links, Vale, and markdownlint. The first check confirms that each page is in an area directory and that its frontmatter declares one of the four types. Vale skips HTML comments, so the script checks for `<!-- Template: -->` comments itself. Neither Vale nor markdownlint checks that a linked file exists, so `scripts/check-links.py` does. The script fails on any error, and prints Vale warnings and suggestions without failing.
+`scripts/docs-lint.sh` runs four checks in order: page placement and type, leftover template comments, Vale, and markdownlint. The first check confirms that each page is in an area directory and that its frontmatter declares one of the four types. Vale skips HTML comments, so the script checks for `<!-- Template: -->` comments itself. The script fails on any error, and prints Vale warnings and suggestions without failing.
 
 Having one script means people, agents, and the hook all run the same checks. To run it, see [Check documentation](check-documentation.md).
 
@@ -95,7 +97,7 @@ It also has costs and limits:
 
 - Some standards need judgment that no linter has, such as keeping one type per page, naming the host before a procedure, or giving the reason for a design choice. Only [review](../standards/review-checklist.md) catches those.
 - The Google Vale package has its own maintainers, separate from the guide, and can lag behind it. Updating the package is a manual task. See [Track the Google style guide](../standards/README.md#track-the-google-style-guide).
-- The checks need Vale, Node.js, Python 3, and jq on the workstation. Without Vale, the hook doesn't block, so an agent can finish without checks.
+- The checks need Vale, Node.js, and jq on the workstation. Without Vale, the hook doesn't block, so an agent can finish without checks.
 - Spell checking is off. Vale still flags a few British spellings, such as `colour` and `-ise` endings, and product names with the wrong capitalization, but no other misspellings.
 
 Revisit a rule when reviewers keep flagging the same problem. The standards say to turn a problem flagged more than twice into a Vale rule, so that over time tools enforce more of the standard than review does.

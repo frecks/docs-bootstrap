@@ -20,7 +20,11 @@
     "emphasis-style": { "style": "asterisk" },
     "strong-style": { "style": "asterisk" },
     // Allow <kbd> for keyboard keys; no other inline HTML.
-    "no-inline-html": { "allowed_elements": ["kbd"] }
+    "no-inline-html": { "allowed_elements": ["kbd"] },
+    // Relative links point to files that exist, and to headings that exist
+    // in them. scripts/docs-lint.sh pins the package version.
+    "relative-links": true
   },
+  "customRules": ["markdownlint-rule-relative-links"],
   "globs": ["docs/**/*.md"]
 }

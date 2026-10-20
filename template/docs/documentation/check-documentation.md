@@ -11,8 +11,7 @@ Run the documentation checks on a page before you finish a change, so it meets t
 On your workstation, install these tools:
 
 - [Vale](https://vale.sh/docs/install) 3.24.0 or later, on your `PATH`.
-- Node.js with `npx`, which downloads markdownlint the first time it runs.
-- Python 3, for the link check.
+- Node.js with `npx`, which downloads markdownlint and its link rule the first time it runs.
 - `jq`, for the Claude Code hook.
 
 To install Vale 3.24.0 to `~/.local/bin`, run:
@@ -39,13 +38,12 @@ The first run downloads the pinned Google style for Vale into `.vale/styles/Goog
 
 ## Read the results
 
-The script runs five checks, and prints a section for each:
+The script runs four checks, and prints a section for each:
 
 - **Placement and type:** the page is in an area directory, and declares its [Diátaxis type](../standards/structure.md#declare-the-type) in frontmatter.
 - **Template instructions:** no `<!-- Template: -->` comments remain from a [template](../standards/templates/).
-- **Links:** each relative link or image points to a file that exists. Anchors in other pages aren't checked.
 - **Vale:** the prose follows the [style guide](../standards/style-guide.md). Each alert names its rule, such as `Google.Passive`.
-- **markdownlint:** the Markdown syntax follows `.markdownlint-cli2.jsonc`.
+- **markdownlint:** the Markdown syntax follows `.markdownlint-cli2.jsonc`, and each relative link or image points to a file that exists. An anchor, such as `style-guide.md#dates`, must match a heading in that file.
 
 Fix every error. Fix warnings and suggestions unless you've decided they don't apply.
 

@@ -121,10 +121,13 @@ func TestFreshInstallRendersEveryFile(t *testing.T) {
 }
 
 func TestInstallPassesItsOwnStructureChecks(t *testing.T) {
+	if _, err := exec.LookPath("npx"); err != nil {
+		t.Skip("npx isn't installed, so markdownlint and the link check can't run")
+	}
 	repo, path := sampleRepo(t)
 	install(t, repo)
 	out, _ := exec.Command(path("scripts/docs-lint.sh")).Output()
-	for _, section := range []string{"== Placement and type\nOK", "== Template instructions\nOK", "== Links\nOK"} {
+	for _, section := range []string{"== Placement and type\nOK", "== Template instructions\nOK", "== markdownlint\nOK"} {
 		if !strings.Contains(string(out), section) {
 			t.Errorf("missing %q in:\n%s", section, out)
 		}
