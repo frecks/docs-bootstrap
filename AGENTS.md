@@ -27,7 +27,7 @@ Check any page you change:
 scripts/docs-lint.sh docs/path/to/page.md
 ```
 
-In Claude Code, a hook in `.claude/settings.json` runs this after each edit to `docs/`, and returns errors for you to fix.
+In Claude Code, hooks in `.claude/settings.json` run this after each edit to `docs/`, and on every page before you finish if any page in `docs/` changed. They return errors for you to fix.
 
 When you change code or configuration, update the pages that describe it in the same change. When you change a system directly, such as on a host or in a web interface, update the pages that describe it as part of the same task.
 <!-- docs-bootstrap:end -->

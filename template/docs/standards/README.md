@@ -34,7 +34,7 @@ The script runs four checks, and fails on errors:
 | Prose style | [Vale](https://vale.sh/) | `.vale.ini`, `.vale/styles/{{STYLE}}/`, and the {{STYLE}} vocabulary |
 | Markdown syntax, and relative links that point to files and headings that exist | [markdownlint](https://github.com/DavidAnson/markdownlint) | `.markdownlint-cli2.jsonc` |
 
-In Claude Code, a hook runs the same script after every edit to a file in `docs/`, and sends errors back to the agent to fix.
+In Claude Code, hooks run the same script after every edit to a file in `docs/`, and on all of `docs/` before the agent finishes if any page changed. They send errors back to the agent to fix.
 
 Vale doesn't check the files in `docs/standards/`, because they quote bad examples on purpose. markdownlint still checks them.
 

@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # Check documentation against docs/standards.
 #
-# Usage: scripts/docs-lint.sh [FILE...]
-# With no arguments, checks every Markdown file in docs/. FILE paths are
-# relative to the current directory.
+# Usage: scripts/docs-lint.sh [--with-referrers] [FILE...]
+# With no FILE, checks every Markdown file in docs/. FILE paths are relative to
+# the current directory.
+#
+# --with-referrers also runs markdownlint on the pages in docs/ that mention a
+# FILE's name, so a link to a FILE that an edit broke, such as an anchor to a
+# renamed heading, is caught. It costs about the same however large docs/ is.
 #
 # Runs four checks:
 #   1. Placement and type: each page is in an area directory, and declares
@@ -24,6 +28,12 @@ RELATIVE_LINKS_VERSION=5.1.4
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+with_referrers=0
+if [ "${1:-}" = "--with-referrers" ]; then
+  with_referrers=1
+  shift
+fi
+
 # Resolve FILE arguments from the caller's directory, before moving to root.
 files=()
 for f in "$@"; do
@@ -43,6 +53,17 @@ fi
 if [ "${#files[@]}" -eq 0 ]; then
   echo "No Markdown files to check."
   exit 0
+fi
+
+# markdownlint also checks the links in pages that mention a FILE by name.
+lint_files=("${files[@]}")
+if [ "$with_referrers" -eq 1 ]; then
+  for f in "${files[@]}"; do
+    while IFS= read -r ref; do
+      lint_files+=("$ref")
+    done < <(grep -rlF --include='*.md' -- "$(basename "$f")" docs | grep -vxF -- "$f")
+  done
+  mapfile -t lint_files < <(printf '%s\n' "${lint_files[@]}" | sort -u)
 fi
 
 status=0
@@ -115,7 +136,7 @@ if command -v npx > /dev/null; then
   # these literal paths. The relative-links rule is a separate package.
   if out="$(npx --yes --package "markdownlint-cli2@${MARKDOWNLINT_VERSION}" \
     --package "markdownlint-rule-relative-links@${RELATIVE_LINKS_VERSION}" \
-    markdownlint-cli2 --no-globs "${files[@]/#/:}" 2>&1)"; then
+    markdownlint-cli2 --no-globs "${lint_files[@]/#/:}" 2>&1)"; then
     echo "OK"
   elif grep -q '^Summary:' <<< "$out"; then
     grep -v -E '^(markdownlint-cli2 v|Finding:|Linting:|Summary:)' <<< "$out"

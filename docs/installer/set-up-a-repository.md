@@ -4,7 +4,7 @@ type: how-to
 
 # Set up a repository
 
-Install the documentation system into a new or existing repository. The repository gets the documentation standards, Vale and markdownlint configuration, a lint script, a Claude Code hook, and the `docs-write` and `docs-review` agent skills.
+Install the documentation system into a new or existing repository. The repository gets the documentation standards, Vale and markdownlint configuration, a lint script, Claude Code hooks, and the `docs-write` and `docs-review` agent skills.
 
 ## Before you begin
 

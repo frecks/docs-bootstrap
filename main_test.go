@@ -301,12 +301,17 @@ func TestUnpairedAgentsMarkersAreAConflict(t *testing.T) {
 }
 
 func TestBrokenTemplateSettingsFail(t *testing.T) {
-	template := t.TempDir()
-	write(t, filepath.Join(template, ".claude/settings.json"), `{"hooks": {}}`)
-	repo, path := sampleRepo(t)
-	write(t, path(".claude/settings.json"), `{}`)
-	if code, out := install(t, repo, "--template-dir", template); code != 1 || !strings.Contains(out, "command is missing") {
-		t.Errorf("exit %d:\n%s", code, out)
+	for settings, want := range map[string]string{
+		`{"hooks": {}}`:                  "hooks is missing",
+		`{"hooks": {"PostToolUse": []}}`: "hooks.PostToolUse[0].hooks[0].command is missing",
+	} {
+		template := t.TempDir()
+		write(t, filepath.Join(template, ".claude/settings.json"), settings)
+		repo, path := sampleRepo(t)
+		write(t, path(".claude/settings.json"), `{}`)
+		if code, out := install(t, repo, "--template-dir", template); code != 1 || !strings.Contains(out, want) {
+			t.Errorf("%s: exit %d:\n%s", settings, code, out)
+		}
 	}
 }
 
@@ -347,6 +352,9 @@ func TestExistingFilesAreMerged(t *testing.T) {
 	hooks := readJSON(t, path(".claude/settings.json"))["hooks"].(map[string]any)
 	if n := len(hooks["PostToolUse"].([]any)); n != 2 {
 		t.Errorf("PostToolUse has %d entries, want 2", n)
+	}
+	if stop, ok := hooks["Stop"].([]any); !ok || len(stop) != 1 {
+		t.Errorf("Stop hook not added: %v", hooks["Stop"])
 	}
 
 	// Merging again adds nothing.
@@ -638,5 +646,63 @@ func TestLintChecksLinksFromTheRepositoryRoot(t *testing.T) {
 	}
 	if strings.Contains(string(out), `"/docs/README.md"`) {
 		t.Errorf("valid root-relative link reported:\n%s", out)
+	}
+}
+
+func TestEditHookChecksPagesThatLinkToTheEditedPage(t *testing.T) {
+	for _, tool := range []string{"npx", "jq"} {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Skip(tool + " isn't installed")
+		}
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	// check-documentation.md links to this heading.
+	structure := path("docs/standards/structure.md")
+	write(t, structure, strings.Replace(read(t, structure), "## Declare the type", "## State the type", 1))
+	cmd := exec.Command(path(".claude/hooks/docs-lint.sh"))
+	cmd.Env = append(os.Environ(), "CLAUDE_PROJECT_DIR="+repo)
+	cmd.Stdin = strings.NewReader(`{"tool_input": {"file_path": "` + structure + `"}}`)
+	out, _ := cmd.CombinedOutput()
+	if code := cmd.ProcessState.ExitCode(); code != 2 || !strings.Contains(string(out), "check-documentation.md") {
+		t.Errorf("exit %d, want 2 with the broken link in check-documentation.md:\n%s", code, out)
+	}
+}
+
+func TestStopHook(t *testing.T) {
+	for _, tool := range []string{"git", "jq"} {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Skip(tool + " isn't installed")
+		}
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", repo, "-c", "user.name=Test", "-c", "user.email=test@example.com"}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	git("init", "-q")
+	git("add", "-A")
+	git("commit", "-q", "-m", "Install")
+	stop := func(input string) (int, string) {
+		cmd := exec.Command(path(".claude/hooks/docs-lint-stop.sh"))
+		cmd.Env = append(os.Environ(), "PATH="+fakeTools(t), "CLAUDE_PROJECT_DIR="+repo)
+		cmd.Stdin = strings.NewReader(input)
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+
+	if code, out := stop(`{}`); code != 0 || out != "" {
+		t.Errorf("docs/ unchanged: exit %d, want 0 without checking:\n%s", code, out)
+	}
+	write(t, path("docs/untyped.md"), "# Untyped\n")
+	if code, out := stop(`{}`); code != 2 || !strings.Contains(out, "docs/untyped.md") {
+		t.Errorf("page with an error: exit %d, want 2:\n%s", code, out)
+	}
+	if code, out := stop(`{"stop_hook_active": true}`); code != 0 {
+		t.Errorf("second stop: exit %d, want 0:\n%s", code, out)
 	}
 }

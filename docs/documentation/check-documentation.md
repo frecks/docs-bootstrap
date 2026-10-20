@@ -12,7 +12,7 @@ On your workstation, install these tools:
 
 - [Vale](https://vale.sh/docs/install) 3.24.0 or later, on your `PATH`.
 - Node.js 22 or later, with `npx`, which downloads markdownlint and its link rule the first time it runs.
-- `jq`, for the Claude Code hook.
+- `jq`, for the Claude Code hooks.
 
 To install Vale 3.24.0 to `~/.local/bin`, run:
 

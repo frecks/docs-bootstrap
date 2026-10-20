@@ -19,7 +19,7 @@ context() {
   jq -n --arg ctx "$1" '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $ctx}}'
 }
 
-out="$("$root/scripts/docs-lint.sh" "$file" 2>&1)"
+out="$("$root/scripts/docs-lint.sh" --with-referrers "$file" 2>&1)"
 case $? in
   0)
     if grep -q -E ' (warning|suggestion) ' <<< "$out"; then

@@ -524,10 +524,15 @@ func (in *installer) mergeSettings(rel, text string) error {
 	if err != nil {
 		return fmt.Errorf("template %s: %w", rel, err)
 	}
-	ours := index(get(get(template, "hooks"), "PostToolUse"), 0)
-	command, ok := get(index(get(ours, "hooks"), 0), "command").(string)
-	if !ok {
-		return fmt.Errorf("template %s: hooks.PostToolUse[0].hooks[0].command is missing", rel)
+	// Each hook event in the template, such as PostToolUse, has one entry.
+	templateHooks, ok := get(template, "hooks").(*object)
+	if !ok || len(templateHooks.keys) == 0 {
+		return fmt.Errorf("template %s: hooks is missing", rel)
+	}
+	for _, event := range templateHooks.keys {
+		if _, ok := get(index(get(index(templateHooks.values[event], 0), "hooks"), 0), "command").(string); !ok {
+			return fmt.Errorf("template %s: hooks.%s[0].hooks[0].command is missing", rel, event)
+		}
 	}
 	current, exists, err := in.read(rel)
 	if err != nil {
@@ -555,30 +560,46 @@ func (in *installer) mergeSettings(rel, text string) error {
 		in.add("conflict", rel+" (hooks isn't a JSON object; add the hook by hand)")
 		return nil
 	}
-	if _, ok := hooks.values["PostToolUse"]; !ok {
-		hooks.set("PostToolUse", []any{})
-	}
-	entries, ok := hooks.values["PostToolUse"].([]any)
-	if !ok {
-		in.add("conflict", rel+" (hooks.PostToolUse isn't a JSON array; add the hook by hand)")
-		return nil
-	}
-	for _, entry := range entries {
-		if list, ok := get(entry, "hooks").([]any); ok {
-			for _, hook := range list {
-				if get(hook, "command") == command {
-					return nil
-				}
-			}
+	changed := false
+	for _, event := range templateHooks.keys {
+		ours := index(templateHooks.values[event], 0)
+		command := get(index(get(ours, "hooks"), 0), "command")
+		if _, ok := hooks.values[event]; !ok {
+			hooks.set(event, []any{})
+		}
+		entries, ok := hooks.values[event].([]any)
+		if !ok {
+			in.add("conflict", rel+" (hooks."+event+" isn't a JSON array; add the hook by hand)")
+			return nil
+		}
+		if !hasCommand(entries, command) {
+			hooks.set(event, append(entries, ours))
+			changed = true
 		}
 	}
-	hooks.set("PostToolUse", append(entries, ours))
+	if !changed {
+		return nil
+	}
 	out, err := marshal(settings)
 	if err != nil {
 		return err
 	}
 	in.add("merged", rel)
 	return in.write(rel, out, 0)
+}
+
+// hasCommand reports whether a hook in entries runs command.
+func hasCommand(entries []any, command any) bool {
+	for _, entry := range entries {
+		if list, ok := get(entry, "hooks").([]any); ok {
+			for _, hook := range list {
+				if get(hook, "command") == command {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func (in *installer) linkClaudeMD() error {

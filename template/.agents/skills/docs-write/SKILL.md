@@ -36,7 +36,7 @@ The rules live in `docs/standards/`. This skill is the process for applying them
 
    If the output says a check was `SKIPPED`, the tool isn't installed or isn't on `PATH`. Tell the user, and point them to `docs/documentation/check-documentation.md`. Don't report the page as checked.
 
-   In Claude Code, a hook runs this script after each edit in `docs/`, but run it yourself before finishing so you see every alert.
+   In Claude Code, hooks run this script after each edit in `docs/`, and on every page before you finish. Run it yourself anyway, so you see every alert.
 
 1. **Get a review.** If you can start a subagent, have one with a fresh context run the `docs-review` skill on the page, then fix what it reports. Otherwise, run `docs-review` yourself.
 

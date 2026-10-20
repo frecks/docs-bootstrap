@@ -4,7 +4,7 @@ type: explanation
 
 # Why the documentation system works this way
 
-This page explains why Docs bootstrap documentation uses Diátaxis for structure, a style guide based on Google's, Vale and markdownlint for checks, and a Claude Code hook that runs those checks for agents. Read it before you change any part of the system, so you know what each part protects against. The rules themselves are in the [documentation standards](../standards/README.md), and this page doesn't repeat them.
+This page explains why Docs bootstrap documentation uses Diátaxis for structure, a style guide based on Google's, Vale and markdownlint for checks, and Claude Code hooks that run those checks for agents. Read it before you change any part of the system, so you know what each part protects against. The rules themselves are in the [documentation standards](../standards/README.md), and this page doesn't repeat them.
 
 ## Context
 
@@ -68,9 +68,14 @@ markdownlint also checks links, through the [markdownlint-rule-relative-links](h
 
 `scripts/docs-lint.sh` runs four checks in order: page placement and type, leftover template comments, Vale, and markdownlint. The first check confirms that each page is in an area directory and that its frontmatter declares one of the four types. Vale skips HTML comments, so the script checks for `<!-- Template: -->` comments itself. The script fails on any error, and prints Vale warnings and suggestions without failing.
 
-Having one script means people, agents, and the hook all run the same checks. To run it, see [Check documentation](check-documentation.md).
+Having one script means people, agents, and the hooks all run the same checks. To run it, see [Check documentation](check-documentation.md).
 
-A `PostToolUse` hook in `.claude/settings.json` runs the script after each `Edit`, `MultiEdit`, or `Write` in Claude Code, on Markdown files in `docs/`. Errors go back to the agent to fix before it moves on. Warnings and suggestions go to the agent as context, without blocking. If a check can't run, such as when Vale isn't installed or npx can't download markdownlint, the hook asks the agent to tell the user, and doesn't block. The hook catches problems at the edit that introduced them, instead of in review.
+Two hooks in `.claude/settings.json` run the script for agents in Claude Code:
+
+- **After each edit:** a `PostToolUse` hook checks a Markdown file in `docs/` after each `Edit`, `MultiEdit`, or `Write`. It also runs markdownlint on the pages that mention the file's name, so a link that the edit broke elsewhere, such as an anchor to a renamed heading, is caught too. Checking only those pages keeps each edit fast however large `docs/` grows.
+- **Before the agent finishes:** a `Stop` hook checks every page in `docs/`, if any page there has uncommitted changes. This catches what the edit hook can't see, such as a page that a command moved or deleted. It blocks the agent once, so it fixes the errors, and then lets it finish.
+
+Errors go back to the agent to fix before it moves on. Warnings and suggestions go to the agent as context, without blocking. If a check can't run, such as when Vale isn't installed or npx can't download markdownlint, the hooks ask the agent to tell the user, and don't block. The hooks catch problems while the agent is still working, instead of in review.
 
 ### A bootstrap tool installs and upgrades the system
 
@@ -97,7 +102,7 @@ It also has costs and limits:
 
 - Some standards need judgment that no linter has, such as keeping one type per page, naming the host before a procedure, or giving the reason for a design choice. Only [review](../standards/review-checklist.md) catches those.
 - The Google Vale package has its own maintainers, separate from the guide, and can lag behind it. Updating the package is a manual task. See [Track the Google style guide](../standards/README.md#track-the-google-style-guide).
-- The checks need Vale, Node.js 22 or later, and jq on the workstation. When a check can't run, the hook doesn't block, so an agent can finish without that check.
+- The checks need Vale, Node.js 22 or later, and jq on the workstation. When a check can't run, the hooks don't block, so an agent can finish without that check.
 - Spell checking is off. Vale still flags a few British spellings, such as `colour` and `-ise` endings, and product names with the wrong capitalization, but no other misspellings.
 
 Revisit a rule when reviewers keep flagging the same problem. The standards say to turn a problem flagged more than twice into a Vale rule, so that over time tools enforce more of the standard than review does.
