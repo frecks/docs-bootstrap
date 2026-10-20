@@ -4,19 +4,21 @@ type: how-to
 
 # Upgrade a repository
 
-Bring a repository up to date with the current version of the documentation system. Upgrade after the template in this repository changes, such as a new rule or a new pinned version of Vale's Google style.
+Bring a repository up to date with the current version of the documentation system. Upgrade after a new version of `docs-bootstrap`, such as one with a new rule or a new pinned version of Vale's Google style.
 
 ## Before you begin
 
-- The repository was set up with `bootstrap.py`, so it has a `.docs-bootstrap.json` file. To set one up, see [Set up a repository](set-up-a-repository.md).
+- The repository was set up with the installer, so it has a `.docs-bootstrap.json` file. To set one up, see [Set up a repository](set-up-a-repository.md).
 - A clean working tree in the repository, so you can review the changes with `git diff`.
 
 ## Upgrade
 
+1. Update `docs-bootstrap`, so it has the current documentation system. See [Install docs-bootstrap](install-docs-bootstrap.md#update).
+
 1. Run the installer on the repository again. You don't need to repeat its options, because it reads them from `.docs-bootstrap.json`:
 
    ```bash
-   python3 bootstrap.py ../my-repo
+   docs-bootstrap ../my-repo
    ```
 
 1. Read the output:
@@ -28,7 +30,7 @@ Bring a repository up to date with the current version of the documentation syst
 1. For each conflict, compare your version with the new one:
 
    ```bash
-   python3 bootstrap.py ../my-repo --diff
+   docs-bootstrap ../my-repo --diff
    ```
 
    Then do one of these:
@@ -37,7 +39,7 @@ Bring a repository up to date with the current version of the documentation syst
    - To take the new version and lose your edits, run the installer with `--replace` and the file's path:
 
      ```bash
-     python3 bootstrap.py ../my-repo --replace docs/standards/style-guide.md
+     docs-bootstrap ../my-repo --replace docs/standards/style-guide.md
      ```
 
    - To keep your edits and add the new changes, edit your file by hand to include them.
@@ -49,7 +51,7 @@ Bring a repository up to date with the current version of the documentation syst
 Run the installer again:
 
 ```bash
-python3 bootstrap.py ../my-repo
+docs-bootstrap ../my-repo
 ```
 
 If you took every new version, the output ends with this message:

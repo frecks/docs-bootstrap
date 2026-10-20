@@ -4,7 +4,7 @@ type: reference
 
 # Template syntax
 
-This page lists the placeholders and profile sections you can use in files under `template/`. The source of truth is the `render` and `variables_for` functions in `bootstrap.py`.
+This page lists the placeholders and profile sections you can use in files under `template/`. The source of truth is the `render` and `variablesFor` functions in `main.go`.
 
 ## Placeholders
 
@@ -14,7 +14,7 @@ The installer replaces each placeholder, in both file contents and file paths:
 | --- | --- | --- |
 | `{{PROJECT}}` | The `--name` option | `Acme api` |
 | `{{STYLE}}` | The `--style` option | `AcmeApi` |
-| `{{NOUN}}` | The `--noun` option | `project` |
+| `{{NOUN}}` | The `--noun` option, or the profile's default | `project` |
 | `{{AUDIENCE}}` | The `--audience` option, or the profile's default | `a developer who knows…` |
 | `{{AREA}}` | What directories group pages by: `component` or `system`, from the profile | `component` |
 | `{{EXAMPLE_AREA}}` | An example directory name: `api` or `network`, from the profile | `api` |

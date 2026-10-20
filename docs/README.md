@@ -4,10 +4,11 @@ Documentation for Docs bootstrap, grouped by component. Each page has a type: a 
 
 ## Installer
 
-Set up and upgrade repositories with `bootstrap.py`.
+Install the `docs-bootstrap` command, and use it to set up and upgrade repositories.
 
 | Page | Type |
 | --- | --- |
+| [Install docs-bootstrap](installer/install-docs-bootstrap.md) | How-to |
 | [Set up a repository](installer/set-up-a-repository.md) | How-to |
 | [Upgrade a repository](installer/upgrade-a-repository.md) | How-to |
 | [Options](installer/options.md) | Reference |

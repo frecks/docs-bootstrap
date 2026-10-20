@@ -9,15 +9,23 @@ Set up any repository with a documentation system that agents and people can wri
 
 ## Quick start
 
+Install the `docs-bootstrap` command from this repository:
+
 ```bash
-python3 bootstrap.py ../my-repo --profile software
+go install .
 ```
 
-Use `--profile infrastructure` for repositories that describe servers and networks. Run the same command again later to upgrade: the installer updates files you haven't edited, and keeps the ones you have.
+Then set up a repository:
 
-See [Set up a repository](docs/installer/set-up-a-repository.md), and the rest of the [documentation](docs/README.md).
+```bash
+docs-bootstrap ../my-repo --profile software
+```
+
+Use `--profile infrastructure` for repositories that describe servers and networks. To upgrade later, update `docs-bootstrap` and run the same command again. The installer updates files you haven't edited, and keeps the ones you have.
+
+See [Install docs-bootstrap](docs/installer/install-docs-bootstrap.md), [Set up a repository](docs/installer/set-up-a-repository.md), and the rest of the [documentation](docs/README.md).
 
 ## Requirements
 
-- Python 3.8 or later, to run the installer and the link check.
-- Vale, Node.js, and `jq`, in the repositories you set up.
+- Go 1.22 or later, to install `docs-bootstrap`, and Git, for `--diff`.
+- Python 3, Vale, Node.js, and `jq`, in the repositories you set up.
