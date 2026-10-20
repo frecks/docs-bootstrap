@@ -4,7 +4,7 @@ type: how-to
 
 # Set up a repository
 
-Install the documentation system into a new or existing repository. The repository gets the documentation standards, Vale and markdownlint configuration, a lint script, a Claude Code hook, and the `docs-write` and `docs-review` agent skills.
+Install the documentation system into a new or existing repository. The repository gets the documentation standards, Vale and markdownlint configuration, a lint script, Claude Code hooks, and the `docs-write` and `docs-review` agent skills.
 
 ## Before you begin
 
@@ -45,6 +45,8 @@ Install the documentation system into a new or existing repository. The reposito
 1. If your `AGENTS.md` already described your documentation, delete that description. The installer added its own, between the `docs-bootstrap:begin` and `docs-bootstrap:end` comments, and keeps it up to date.
 
 1. In your repository, add product names that your docs use to `.vale/styles/config/vocabularies/STYLE/accept.txt`, where `STYLE` is the style name the installer printed.
+
+The installer also installs the lint tools, Vale's Google style and the markdownlint packages, by running `scripts/docs-lint.sh --install` in your repository. If that fails, such as when you're offline, the first lint run tries again.
 
 ## Verify
 

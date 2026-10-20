@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	version      = "0.3.0"
+	version      = "0.4.0"
 	manifestName = ".docs-bootstrap.json"
 	blockBegin   = "<!-- docs-bootstrap:begin -->"
 	blockEnd     = "<!-- docs-bootstrap:end -->"
@@ -43,7 +43,7 @@ const (
 //go:embed all:template
 var embedded embed.FS
 
-// Created once, then owned by the repository. Never updated.
+// Created once, then owned by the repository. Updated only while unedited.
 var seed = map[string]bool{
 	"docs/README.md": true,
 	"docs/documentation/check-documentation.md":                         true,
@@ -133,6 +133,9 @@ type manifest struct {
 	Version string            `json:"version"`
 	Options options           `json:"options"`
 	Files   map[string]string `json:"files"`
+	// Seeds has a hash of the template's version of each seed file, as last
+	// offered, so an edited seed is reported only when the template changes.
+	Seeds map[string]string `json:"seeds,omitempty"`
 }
 
 func readManifest(target string) (manifest, error) {
@@ -164,6 +167,7 @@ var reportSections = []struct{ key, label string }{
 	{"updated", "Updated"},
 	{"merged", "Merged into"},
 	{"kept", "Not restored"},
+	{"seedKept", "Not updated, because they differ from the template (--replace PATH takes the new version)"},
 	{"conflict", "Conflicts, left unchanged"},
 }
 
@@ -177,6 +181,8 @@ type installer struct {
 	vars      map[string]string
 	oldHashes map[string]string
 	newHashes map[string]string
+	oldSeeds  map[string]string
+	newSeeds  map[string]string
 	crlf      map[string]bool // files read with CRLF line endings
 	report    map[string][]string
 	out       io.Writer
@@ -200,6 +206,7 @@ func newInstaller(target string, opts options, template fs.FS, dryRun, showDiff 
 		vars:      variablesFor(opts),
 		oldHashes: oldHashes,
 		newHashes: map[string]string{},
+		newSeeds:  map[string]string{},
 		crlf:      map[string]bool{},
 		report:    map[string][]string{},
 		out:       out,
@@ -299,24 +306,53 @@ func (in *installer) run() error {
 	return in.saveManifest()
 }
 
-func (in *installer) managedPaths() map[string]bool {
+// replaceablePaths lists the managed and seed files, which --replace accepts.
+func (in *installer) replaceablePaths() map[string]bool {
 	paths := map[string]bool{}
 	for _, f := range in.files {
-		if !seed[f.template] && merged[f.template] == nil {
+		if merged[f.template] == nil {
 			paths[f.rel] = true
 		}
 	}
 	return paths
 }
 
+// seed creates a file that the repository owns from then on. An upgrade
+// updates it only while it matches the version the installer last wrote, so a
+// repository that hasn't edited it still gets fixes.
 func (in *installer) seed(rel, text string, mode fs.FileMode) error {
-	if _, err := os.Stat(in.path(rel)); err == nil {
-		return nil
-	} else if !errors.Is(err, fs.ErrNotExist) {
+	current, exists, err := in.read(rel)
+	if err != nil {
 		return err
 	}
-	in.add("created", rel)
-	return in.write(rel, text, mode)
+	newHash := sha(text)
+	oldHash, installed := in.oldHashes[rel]
+	in.newSeeds[rel] = newHash
+	switch {
+	case in.replace[rel]:
+		in.newHashes[rel] = newHash
+		if !exists || current != text {
+			in.add("updated", rel+" (replaced)")
+			return in.write(rel, text, mode)
+		}
+	case !exists:
+		in.newHashes[rel] = newHash
+		in.add("created", rel)
+		return in.write(rel, text, mode)
+	case current == text:
+		in.newHashes[rel] = newHash
+	case installed && oldHash == sha(current):
+		in.newHashes[rel] = newHash
+		in.add("updated", rel)
+		return in.write(rel, text, mode)
+	}
+	// Edited here, or present before the install: the repository owns it, so
+	// the installer stops tracking it. Say so once for each new template
+	// version, so it can be updated by hand or taken with --replace.
+	if exists && current != text && in.oldSeeds[rel] != newHash {
+		in.add("seedKept", rel)
+	}
+	return nil
 }
 
 func (in *installer) managed(rel, text string, mode fs.FileMode) error {
@@ -500,10 +536,15 @@ func (in *installer) mergeSettings(rel, text string) error {
 	if err != nil {
 		return fmt.Errorf("template %s: %w", rel, err)
 	}
-	ours := index(get(get(template, "hooks"), "PostToolUse"), 0)
-	command, ok := get(index(get(ours, "hooks"), 0), "command").(string)
-	if !ok {
-		return fmt.Errorf("template %s: hooks.PostToolUse[0].hooks[0].command is missing", rel)
+	// Each hook event in the template, such as PostToolUse, has one entry.
+	templateHooks, ok := get(template, "hooks").(*object)
+	if !ok || len(templateHooks.keys) == 0 {
+		return fmt.Errorf("template %s: hooks is missing", rel)
+	}
+	for _, event := range templateHooks.keys {
+		if _, ok := get(index(get(index(templateHooks.values[event], 0), "hooks"), 0), "command").(string); !ok {
+			return fmt.Errorf("template %s: hooks.%s[0].hooks[0].command is missing", rel, event)
+		}
 	}
 	current, exists, err := in.read(rel)
 	if err != nil {
@@ -531,30 +572,68 @@ func (in *installer) mergeSettings(rel, text string) error {
 		in.add("conflict", rel+" (hooks isn't a JSON object; add the hook by hand)")
 		return nil
 	}
-	if _, ok := hooks.values["PostToolUse"]; !ok {
-		hooks.set("PostToolUse", []any{})
-	}
-	entries, ok := hooks.values["PostToolUse"].([]any)
-	if !ok {
-		in.add("conflict", rel+" (hooks.PostToolUse isn't a JSON array; add the hook by hand)")
-		return nil
-	}
-	for _, entry := range entries {
-		if list, ok := get(entry, "hooks").([]any); ok {
-			for _, hook := range list {
-				if get(hook, "command") == command {
-					return nil
-				}
-			}
+	changed := false
+	for _, event := range templateHooks.keys {
+		ours := index(templateHooks.values[event], 0)
+		command := get(index(get(ours, "hooks"), 0), "command")
+		if _, ok := hooks.values[event]; !ok {
+			hooks.set(event, []any{})
+		}
+		entries, ok := hooks.values[event].([]any)
+		if !ok {
+			in.add("conflict", rel+" (hooks."+event+" isn't a JSON array; add the hook by hand)")
+			return nil
+		}
+		if !hasCommand(entries, command) {
+			hooks.set(event, append(entries, ours))
+			changed = true
 		}
 	}
-	hooks.set("PostToolUse", append(entries, ours))
+	if !changed {
+		return nil
+	}
 	out, err := marshal(settings)
 	if err != nil {
 		return err
 	}
 	in.add("merged", rel)
 	return in.write(rel, out, 0)
+}
+
+// installTools installs the lint tools with the repository's own
+// scripts/docs-lint.sh, so the first check doesn't have to. A failure isn't
+// fatal: the script tries again when it next runs.
+func installTools(target string, stdout io.Writer) {
+	script := filepath.Join(target, "scripts", "docs-lint.sh")
+	// An edited script kept as a conflict may predate --install.
+	if data, err := os.ReadFile(script); err != nil || !strings.Contains(string(data), `"--install"`) {
+		fmt.Fprint(stdout, "\nThe lint tools aren't installed, because scripts/docs-lint.sh doesn't support --install. "+
+			"To take the new version of the script, run again with --replace scripts/docs-lint.sh.\n")
+		return
+	}
+	cmd := exec.Command(script, "--install")
+	cmd.Dir = target
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Fprintf(stdout, "\nscripts/docs-lint.sh --install couldn't install every lint tool:\n%s\nIt tries again when it next runs.\n",
+			strings.TrimSpace(string(out)))
+		return
+	}
+	fmt.Fprint(stdout, "\nInstalled the lint tools with scripts/docs-lint.sh --install.\n")
+}
+
+// hasCommand reports whether a hook in entries runs command.
+func hasCommand(entries []any, command any) bool {
+	for _, entry := range entries {
+		if list, ok := get(entry, "hooks").([]any); ok {
+			for _, hook := range list {
+				if get(hook, "command") == command {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func (in *installer) linkClaudeMD() error {
@@ -601,7 +680,7 @@ func (in *installer) symlink(rel, target string) error {
 }
 
 func (in *installer) saveManifest() error {
-	out, err := marshal(manifest{Version: version, Options: in.options, Files: in.newHashes})
+	out, err := marshal(manifest{Version: version, Options: in.options, Files: in.newHashes, Seeds: in.newSeeds})
 	if err != nil {
 		return err
 	}
@@ -702,8 +781,11 @@ Options:
                    (default: from the directory name)
   --dry-run        show what would change, but don't write
   --diff           print a diff for each conflicting file
-  --replace PATH   take the new version of this managed file, replacing local
-                   edits (repeatable)
+  --replace PATH   take the new version of this managed or seed file,
+                   replacing local edits (repeatable)
+  --skip-tools     don't install the lint tools: Vale's Google style and the
+                   markdownlint packages. scripts/docs-lint.sh installs them
+                   when it first runs.
   --version        print the version and exit
 `
 
@@ -716,6 +798,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	name := set.String("name", "", "")
 	dryRun := set.Bool("dry-run", false, "")
 	showDiff := set.Bool("diff", false, "")
+	skipTools := set.Bool("skip-tools", false, "")
 	set.Var(&replace, "replace", "")
 	templateDir := set.String("template-dir", "", "")
 	showVersion := set.Bool("version", false, "")
@@ -794,16 +877,17 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return fail(1, "%v", err)
 	}
-	managed := in.managedPaths()
+	in.oldSeeds = saved.Seeds
+	replaceable := in.replaceablePaths()
 	var unknown []string
 	for p := range in.replace {
-		if !managed[p] {
+		if !replaceable[p] {
 			unknown = append(unknown, p)
 		}
 	}
 	if len(unknown) > 0 {
 		sort.Strings(unknown)
-		return fail(2, "--replace takes a managed file, such as docs/standards/style-guide.md: %s", strings.Join(unknown, ", "))
+		return fail(2, "--replace takes a managed or seed file, such as docs/standards/style-guide.md: %s", strings.Join(unknown, ", "))
 	}
 
 	// Create the target only once the command line is known to be valid.
@@ -831,12 +915,15 @@ func run(args []string, stdout, stderr io.Writer) int {
 			}
 		}
 	}
-	if len(report["created"])+len(report["updated"])+len(report["merged"])+len(report["conflict"]) == 0 {
+	if len(report["created"])+len(report["updated"])+len(report["merged"])+len(report["conflict"])+len(report["seedKept"]) == 0 {
 		fmt.Fprint(stdout, "\nAlready up to date.\n")
 	}
 	if len(report["conflict"]) > 0 {
 		fmt.Fprint(stdout, "\nYour version of each conflicting file is kept. To compare, run again with --diff. "+
 			"To take the new version, run again with --replace PATH.\n")
+	}
+	if !*dryRun && !*skipTools {
+		installTools(target, stdout)
 	}
 	fmt.Fprint(stdout, "\nNext: run scripts/docs-lint.sh in the repository. See docs/documentation/check-documentation.md there.\n")
 	if len(report["conflict"]) > 0 {

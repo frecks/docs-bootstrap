@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "description": "Pinned markdownlint packages for scripts/docs-lint.sh.",
+  "dependencies": {
+    "markdownlint-cli2": "0.23.3",
+    "markdownlint-rule-relative-links": "5.1.4"
+  }
+}

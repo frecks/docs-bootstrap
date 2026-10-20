@@ -34,9 +34,9 @@ The rules live in `docs/standards/`. This skill is the process for applying them
 
    Fix every error. Fix warnings unless you've decided they don't apply, and tell the user which ones you kept and why. Fix suggestions, such as `Google.Passive`, when the rewrite is clearer; otherwise leave them.
 
-   If the output says a check was `SKIPPED`, the tool isn't installed or isn't on `PATH`. Tell the user, and point them to `docs/documentation/check-documentation.md`. Don't report the page as checked.
+   If the output says a check was `SKIPPED`, its tool isn't installed, isn't on `PATH`, or couldn't run. Tell the user, and point them to `docs/documentation/check-documentation.md`. Don't report the page as checked.
 
-   In Claude Code, a hook runs this script after each edit in `docs/`, but run it yourself before finishing so you see every alert.
+   In Claude Code, hooks run this script after each edit in `docs/`, and on every page before you finish if `docs/` has uncommitted changes. Run it yourself anyway, so you see every alert.
 
 1. **Get a review.** If you can start a subagent, have one with a fresh context run the `docs-review` skill on the page, then fix what it reports. Otherwise, run `docs-review` yourself.
 

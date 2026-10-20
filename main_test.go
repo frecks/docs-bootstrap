@@ -11,11 +11,12 @@ import (
 	"testing"
 )
 
-// install runs the installer quietly, and returns its exit status and output.
+// install runs the installer quietly, without installing the lint tools,
+// and returns its exit status and output.
 func install(t *testing.T, target string, args ...string) (int, string) {
 	t.Helper()
 	var out bytes.Buffer
-	code := run(append([]string{target}, args...), &out, &out)
+	code := run(append([]string{"--skip-tools", target}, args...), &out, &out)
 	return code, out.String()
 }
 
@@ -121,9 +122,7 @@ func TestFreshInstallRendersEveryFile(t *testing.T) {
 }
 
 func TestInstallPassesItsOwnStructureChecks(t *testing.T) {
-	if _, err := exec.LookPath("npx"); err != nil {
-		t.Skip("npx isn't installed, so markdownlint and the link check can't run")
-	}
+	requireRegistry(t)
 	repo, path := sampleRepo(t)
 	install(t, repo)
 	out, _ := exec.Command(path("scripts/docs-lint.sh")).Output()
@@ -184,7 +183,7 @@ func TestVersion(t *testing.T) {
 
 func TestCommandLineErrorsExitTwo(t *testing.T) {
 	repo, _ := sampleRepo(t)
-	for _, args := range [][]string{{"--replace", "docs/README.md"}, {"--profile", "software"}, {"--bogus"}} {
+	for _, args := range [][]string{{"--replace", ".gitignore"}, {"--profile", "software"}, {"--bogus"}} {
 		if code, _ := install(t, repo, args...); code != 2 {
 			t.Errorf("%v: exit %d, want 2", args, code)
 		}
@@ -301,12 +300,17 @@ func TestUnpairedAgentsMarkersAreAConflict(t *testing.T) {
 }
 
 func TestBrokenTemplateSettingsFail(t *testing.T) {
-	template := t.TempDir()
-	write(t, filepath.Join(template, ".claude/settings.json"), `{"hooks": {}}`)
-	repo, path := sampleRepo(t)
-	write(t, path(".claude/settings.json"), `{}`)
-	if code, out := install(t, repo, "--template-dir", template); code != 1 || !strings.Contains(out, "command is missing") {
-		t.Errorf("exit %d:\n%s", code, out)
+	for settings, want := range map[string]string{
+		`{"hooks": {}}`:                  "hooks is missing",
+		`{"hooks": {"PostToolUse": []}}`: "hooks.PostToolUse[0].hooks[0].command is missing",
+	} {
+		template := t.TempDir()
+		write(t, filepath.Join(template, ".claude/settings.json"), settings)
+		repo, path := sampleRepo(t)
+		write(t, path(".claude/settings.json"), `{}`)
+		if code, out := install(t, repo, "--template-dir", template); code != 1 || !strings.Contains(out, want) {
+			t.Errorf("%s: exit %d:\n%s", settings, code, out)
+		}
 	}
 }
 
@@ -347,6 +351,9 @@ func TestExistingFilesAreMerged(t *testing.T) {
 	hooks := readJSON(t, path(".claude/settings.json"))["hooks"].(map[string]any)
 	if n := len(hooks["PostToolUse"].([]any)); n != 2 {
 		t.Errorf("PostToolUse has %d entries, want 2", n)
+	}
+	if stop, ok := hooks["Stop"].([]any); !ok || len(stop) != 1 {
+		t.Errorf("Stop hook not added: %v", hooks["Stop"])
 	}
 
 	// Merging again adds nothing.
@@ -453,7 +460,7 @@ func TestDeletedManagedFileStaysDeleted(t *testing.T) {
 
 func TestReplaceRejectsUnmanagedPathsBeforeWriting(t *testing.T) {
 	repo, path := sampleRepo(t)
-	if code, _ := install(t, repo, "--replace", "docs/README.md"); code != 2 {
+	if code, _ := install(t, repo, "--replace", ".gitignore"); code != 2 {
 		t.Errorf("exit %d, want 2", code)
 	}
 	if _, err := os.Stat(path(".vale.ini")); err == nil {
@@ -481,5 +488,476 @@ func TestRender(t *testing.T) {
 		if _, err := render(in, vars); err == nil {
 			t.Errorf("render(%q) didn't fail", in)
 		}
+	}
+}
+
+func TestUneditedSeedIsUpdated(t *testing.T) {
+	template := copyDir(t, "template")
+	repo, path := sampleRepo(t)
+	install(t, repo, "--template-dir", template)
+	why := "docs/documentation/why-the-documentation-system-works-this-way.md"
+	write(t, path("docs/README.md"), "# Ours\n")
+	for _, rel := range []string{why, "docs/README.md"} {
+		full := filepath.Join(template, rel)
+		write(t, full, read(t, full)+"\nUpstream change.\n")
+	}
+
+	// The unedited seed takes the change; the edited one is the repository's,
+	// so it's kept without a conflict.
+	if code, out := install(t, repo, "--template-dir", template); code != 0 || strings.Contains(out, "Conflicts") {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+	if !strings.Contains(read(t, path(why)), "Upstream change.") {
+		t.Error("unedited seed wasn't updated")
+	}
+	if text := read(t, path("docs/README.md")); text != "# Ours\n" {
+		t.Errorf("edited seed changed:\n%s", text)
+	}
+	if code, out := install(t, repo, "--template-dir", template); code != 0 || !strings.Contains(out, "Already up to date.") {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+}
+
+func TestSeedFromBeforeInstallIsKeptUntilReplaced(t *testing.T) {
+	repo, path := sampleRepo(t)
+	why := "docs/documentation/why-the-documentation-system-works-this-way.md"
+	write(t, path(why), "# Old\n")
+	if code, out := install(t, repo); code != 0 || strings.Contains(out, "Conflicts") {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+	if text := read(t, path(why)); text != "# Old\n" {
+		t.Errorf("existing seed changed:\n%s", text)
+	}
+	if code, out := install(t, repo, "--replace", why); code != 0 {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+	if text := read(t, path(why)); text == "# Old\n" {
+		t.Error("--replace didn't take the new version of the seed")
+	}
+}
+
+// fakeTools returns a PATH where vale is missing and npm fails, as it does
+// when it can't download a package.
+func fakeTools(t *testing.T) string {
+	t.Helper()
+	bin := t.TempDir()
+	write(t, filepath.Join(bin, "npm"), "#!/bin/sh\necho 'npm error code ENOTCACHED'\nexit 1\n")
+	if err := os.Chmod(filepath.Join(bin, "npm"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return bin + ":/usr/bin:/bin"
+}
+
+func TestLintExitsThreeWhenAToolCantRun(t *testing.T) {
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	env := append(os.Environ(), "PATH="+fakeTools(t))
+	lint := func(page string) (int, string) {
+		cmd := exec.Command(path("scripts/docs-lint.sh"), path(page))
+		cmd.Env = env
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+	if code, out := lint("docs/documentation/check-documentation.md"); code != 3 || strings.Count(out, "SKIPPED") != 2 {
+		t.Errorf("clean page: exit %d, want 3:\n%s", code, out)
+	}
+	write(t, path("docs/x/untyped.md"), "# Untyped\n")
+	if code, out := lint("docs/x/untyped.md"); code != 1 {
+		t.Errorf("page with an error: exit %d, want 1:\n%s", code, out)
+	}
+}
+
+func TestHookDoesNotBlockWhenAToolCantRun(t *testing.T) {
+	if _, err := exec.LookPath("jq"); err != nil {
+		t.Skip("jq isn't installed")
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	hook := func(page string) (int, string) {
+		cmd := exec.Command(path(".claude/hooks/docs-lint.sh"))
+		cmd.Env = append(os.Environ(), "PATH="+fakeTools(t), "CLAUDE_PROJECT_DIR="+repo)
+		cmd.Stdin = strings.NewReader(`{"tool_input": {"file_path": "` + path(page) + `"}}`)
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+	if code, out := hook("docs/documentation/check-documentation.md"); code != 0 || !strings.Contains(out, "couldn't run") {
+		t.Errorf("clean page: exit %d, want 0 with context:\n%s", code, out)
+	}
+	write(t, path("docs/x/untyped.md"), "# Untyped\n")
+	if code, out := hook("docs/x/untyped.md"); code != 2 {
+		t.Errorf("page with an error: exit %d, want 2:\n%s", code, out)
+	}
+}
+
+func TestSecretsRuleAllowsPlaceholders(t *testing.T) {
+	if _, err := exec.LookPath("vale"); err != nil {
+		t.Skip("vale isn't installed")
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	// Only the installed style, so the test doesn't need vale sync.
+	write(t, path("secrets.ini"), "StylesPath = .vale/styles\n\n[*.md]\nBasedOnStyles = SampleRepo\n")
+	write(t, path("page.md"), "# Secrets\n\n```yaml\npassword: YOUR_PASSWORD\ntoken: API_TOKEN\npassword: hunter2hunter2\napi_key = Secr3tValue1\n```\n")
+	cmd := exec.Command("vale", "--config=secrets.ini", "--output=line", "page.md")
+	cmd.Dir = repo
+	out, _ := cmd.CombinedOutput()
+	for _, line := range []string{"page.md:4:", "page.md:5:"} {
+		if strings.Contains(string(out), line) {
+			t.Errorf("placeholder flagged as a secret:\n%s", out)
+		}
+	}
+	for _, line := range []string{"page.md:6:", "page.md:7:"} {
+		if !strings.Contains(string(out), line) {
+			t.Errorf("secret on %s not flagged:\n%s", line, out)
+		}
+	}
+}
+
+func TestLintResolvesFilesFromTheCallersDirectory(t *testing.T) {
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	lint := func(args ...string) (int, string) {
+		cmd := exec.Command(path("scripts/docs-lint.sh"), args...)
+		cmd.Dir = path("docs")
+		cmd.Env = append(os.Environ(), "PATH="+fakeTools(t))
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+	// The fake tools can't run, so a clean page exits 3.
+	if code, out := lint("documentation/check-documentation.md"); code != 3 || !strings.Contains(out, "== Placement and type\nOK") {
+		t.Errorf("relative path: exit %d, want 3:\n%s", code, out)
+	}
+	if code, out := lint("documentation/nope.md"); code != 2 || !strings.Contains(out, "documentation/nope.md: no such file.") {
+		t.Errorf("missing file: exit %d, want 2:\n%s", code, out)
+	}
+}
+
+func TestLintChecksLinksFromTheRepositoryRoot(t *testing.T) {
+	requireRegistry(t)
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	write(t, path("docs/x/links.md"), "---\ntype: reference\n---\n\n# Links\n\n- [Index](/docs/README.md)\n- [Missing](/docs/nope.md)\n")
+	out, _ := exec.Command(path("scripts/docs-lint.sh"), path("docs/x/links.md")).CombinedOutput()
+	if !strings.Contains(string(out), `"/docs/nope.md" should exist`) {
+		t.Errorf("missing root-relative link not reported:\n%s", out)
+	}
+	if strings.Contains(string(out), `"/docs/README.md"`) {
+		t.Errorf("valid root-relative link reported:\n%s", out)
+	}
+}
+
+func TestEditHookChecksPagesThatLinkToTheEditedPage(t *testing.T) {
+	requireRegistry(t)
+	if _, err := exec.LookPath("jq"); err != nil {
+		t.Skip("jq isn't installed")
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	// check-documentation.md links to this heading.
+	structure := path("docs/standards/structure.md")
+	write(t, structure, strings.Replace(read(t, structure), "## Declare the type", "## State the type", 1))
+	cmd := exec.Command(path(".claude/hooks/docs-lint.sh"))
+	cmd.Env = append(os.Environ(), "CLAUDE_PROJECT_DIR="+repo)
+	cmd.Stdin = strings.NewReader(`{"tool_input": {"file_path": "` + structure + `"}}`)
+	out, _ := cmd.CombinedOutput()
+	if code := cmd.ProcessState.ExitCode(); code != 2 || !strings.Contains(string(out), "check-documentation.md") {
+		t.Errorf("exit %d, want 2 with the broken link in check-documentation.md:\n%s", code, out)
+	}
+}
+
+func TestStopHook(t *testing.T) {
+	for _, tool := range []string{"git", "jq"} {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Skip(tool + " isn't installed")
+		}
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", repo, "-c", "user.name=Test", "-c", "user.email=test@example.com"}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	git("init", "-q")
+	git("add", "-A")
+	git("commit", "-q", "-m", "Install")
+	stop := func(input string) (int, string) {
+		cmd := exec.Command(path(".claude/hooks/docs-lint-stop.sh"))
+		cmd.Env = append(os.Environ(), "PATH="+fakeTools(t), "CLAUDE_PROJECT_DIR="+repo)
+		cmd.Stdin = strings.NewReader(input)
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+
+	if code, out := stop(`{}`); code != 0 || out != "" {
+		t.Errorf("docs/ unchanged: exit %d, want 0 without checking:\n%s", code, out)
+	}
+	write(t, path("docs/untyped.md"), "# Untyped\n")
+	if code, out := stop(`{}`); code != 2 || !strings.Contains(out, "docs/untyped.md") {
+		t.Errorf("page with an error: exit %d, want 2:\n%s", code, out)
+	}
+	if code, out := stop(`{"stop_hook_active": true}`); code != 0 {
+		t.Errorf("second stop: exit %d, want 0:\n%s", code, out)
+	}
+}
+
+func TestInstallInstallsLockedLintTools(t *testing.T) {
+	requireRegistry(t)
+	repo, path := sampleRepo(t)
+	var out bytes.Buffer
+	if code := run([]string{repo}, &out, &out); code != 0 {
+		t.Fatalf("exit %d:\n%s", code, out.String())
+	}
+	if _, err := os.Stat(path(".markdownlint/node_modules/.bin/markdownlint-cli2")); err != nil {
+		t.Fatalf("markdownlint isn't installed: %v\n%s", err, out.String())
+	}
+
+	// Later runs use the installed packages, so they don't need npm.
+	lint := func() (int, string) {
+		cmd := exec.Command(path("scripts/docs-lint.sh"), path("docs/README.md"))
+		cmd.Env = append(os.Environ(), "PATH="+fakeTools(t))
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+	if code, out := lint(); !strings.Contains(out, "== markdownlint\nOK") {
+		t.Errorf("exit %d, want markdownlint to run without npm:\n%s", code, out)
+	}
+
+	// A changed lockfile, as after an upgrade, means installing again. When
+	// that fails, the packages that were there keep working.
+	lock := path(".markdownlint/package-lock.json")
+	write(t, lock, read(t, lock)+"\n")
+	if code, out := lint(); !strings.Contains(out, "using the packages from before the lockfile changed.\nOK") {
+		t.Errorf("exit %d, want markdownlint to keep working after npm ci fails:\n%s", code, out)
+	}
+}
+
+func TestTypeMayBeQuotedOrUseCRLF(t *testing.T) {
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	write(t, path("docs/x/quoted.md"), "---\ntype: \"how-to\"\n---\n\n# Quoted\n")
+	write(t, path("docs/x/crlf.md"), "---\r\ntype: 'reference'\r\n---\r\n\r\n# CRLF\r\n")
+	write(t, path("docs/x/bom.md"), "\ufeff---\ntype: how-to # a comment\n---\n\n# BOM\n")
+	cmd := exec.Command(path("scripts/docs-lint.sh"), path("docs/x/quoted.md"), path("docs/x/crlf.md"), path("docs/x/bom.md"))
+	cmd.Env = append(os.Environ(), "PATH="+fakeTools(t))
+	out, _ := cmd.CombinedOutput()
+	if !strings.Contains(string(out), "== Placement and type\nOK") {
+		t.Errorf("type not read:\n%s", out)
+	}
+}
+
+func TestValeStylesSyncAgainWhenThePinChanges(t *testing.T) {
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	// A fake vale that counts syncs, creates the style, and fails to sync
+	// when FAIL_SYNC is set.
+	bin := t.TempDir()
+	write(t, filepath.Join(bin, "vale"), `#!/bin/sh
+if [ "$1" = sync ]; then
+  echo x >> "$SYNC_LOG"
+  [ -n "$FAIL_SYNC" ] && exit 1
+  mkdir -p .vale/styles/Google && echo synced > .vale/styles/Google/rule.yml
+fi
+exit 0
+`)
+	if err := os.Chmod(filepath.Join(bin, "vale"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	syncLog := filepath.Join(t.TempDir(), "syncs")
+	install := func(failSync string) string {
+		cmd := exec.Command(path("scripts/docs-lint.sh"), "--install")
+		cmd.Env = append(os.Environ(), "PATH="+bin+":"+fakeTools(t), "SYNC_LOG="+syncLog, "FAIL_SYNC="+failSync)
+		out, _ := cmd.CombinedOutput()
+		return string(out)
+	}
+	syncs := func() int {
+		data, _ := os.ReadFile(syncLog)
+		return strings.Count(string(data), "x")
+	}
+
+	install("")
+	install("")
+	if n := syncs(); n != 1 {
+		t.Errorf("synced %d times for an unchanged pin, want 1", n)
+	}
+	ini := path(".vale.ini")
+	write(t, ini, strings.Replace(read(t, ini), "Packages = ", "Packages = https://example.com/Other.zip, ", 1))
+	install("")
+	if n := syncs(); n != 2 {
+		t.Errorf("synced %d times after the pin changed, want 2", n)
+	}
+
+	// A failed sync keeps the styles that were there.
+	write(t, ini, strings.Replace(read(t, ini), "https://example.com/Other.zip, ", "", 1))
+	if out := install("1"); !strings.Contains(out, "using the styles from before") {
+		t.Errorf("failed sync not reported:\n%s", out)
+	}
+	if text := read(t, path(".vale/styles/Google/rule.yml")); text != "synced\n" {
+		t.Errorf("styles lost after a failed sync: %q", text)
+	}
+
+	// A run that stopped mid-sync leaves only the backup, which is restored.
+	if err := os.Rename(path(".vale/styles/Google"), path(".vale/styles/Google.old")); err != nil {
+		t.Fatal(err)
+	}
+	install("1")
+	if text := read(t, path(".vale/styles/Google/rule.yml")); text != "synced\n" {
+		t.Errorf("backup not restored: %q", text)
+	}
+}
+
+// requireRegistry skips a test that installs packages when the npm registry
+// can't be reached, such as offline.
+func requireRegistry(t *testing.T) {
+	t.Helper()
+	if _, err := exec.LookPath("npm"); err != nil {
+		t.Skip("npm isn't installed")
+	}
+	if err := exec.Command("npm", "ping", "--fetch-timeout=5000", "--fetch-retries=0").Run(); err != nil {
+		t.Skip("the npm registry can't be reached")
+	}
+}
+
+func TestUpgradeFromBeforeSeedTrackingReportsStaleSeeds(t *testing.T) {
+	template := copyDir(t, "template")
+	repo, path := sampleRepo(t)
+	install(t, repo, "--template-dir", template)
+	// Manifests from before seed tracking have no seed hashes.
+	manifest := readJSON(t, path(".docs-bootstrap.json"))
+	files := manifest["files"].(map[string]any)
+	for rel := range manifest["seeds"].(map[string]any) {
+		delete(files, rel)
+	}
+	delete(manifest, "seeds")
+	data, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	write(t, path(".docs-bootstrap.json"), string(data))
+
+	why := "docs/documentation/why-the-documentation-system-works-this-way.md"
+	full := filepath.Join(template, why)
+	write(t, full, read(t, full)+"\nUpstream change.\n")
+	code, out := install(t, repo, "--template-dir", template)
+	if code != 0 || !strings.Contains(out, "Not updated") || !strings.Contains(out, why) {
+		t.Errorf("stale seed not reported: exit %d:\n%s", code, out)
+	}
+	// It's reported once for each template version, not on every run.
+	if code, out := install(t, repo, "--template-dir", template); code != 0 || strings.Contains(out, "Not updated") {
+		t.Errorf("stale seed reported again: exit %d:\n%s", code, out)
+	}
+}
+
+// oldScript replaces scripts/docs-lint.sh with a stand-in for an edited copy
+// from before --install and --with-referrers, which records its arguments.
+func oldScript(t *testing.T, path func(string) string) string {
+	t.Helper()
+	argsLog := path("args.log")
+	write(t, path("scripts/docs-lint.sh"), "#!/bin/sh\necho \"$@\" >> "+argsLog+"\nexit 0\n")
+	if err := os.Chmod(path("scripts/docs-lint.sh"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return argsLog
+}
+
+func TestOlderLintScriptKeepsHooksAndInstallerWorking(t *testing.T) {
+	if _, err := exec.LookPath("jq"); err != nil {
+		t.Skip("jq isn't installed")
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	argsLog := oldScript(t, path)
+
+	var out bytes.Buffer
+	run([]string{repo}, &out, &out)
+	if !strings.Contains(out.String(), "doesn't support --install") {
+		t.Errorf("installer didn't explain the skipped tools:\n%s", out.String())
+	}
+
+	page := path("docs/documentation/check-documentation.md")
+	cmd := exec.Command(path(".claude/hooks/docs-lint.sh"))
+	cmd.Env = append(os.Environ(), "CLAUDE_PROJECT_DIR="+repo)
+	cmd.Stdin = strings.NewReader(`{"tool_input": {"file_path": "` + page + `"}}`)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Errorf("edit hook failed: %v\n%s", err, out)
+	}
+	if args := read(t, argsLog); strings.Contains(args, "--") {
+		t.Errorf("an option was passed to the older script: %q", args)
+	}
+}
+
+func TestStopHookSkipsWithoutJq(t *testing.T) {
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("bash isn't installed")
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	write(t, path("docs/untyped.md"), "# Untyped\n")
+	// The fake tools' PATH, with every command in it except jq.
+	bin := t.TempDir()
+	for _, dir := range strings.Split(fakeTools(t), ":") {
+		entries, _ := os.ReadDir(dir)
+		for _, e := range entries {
+			if e.Name() == "jq" {
+				continue
+			}
+			_ = os.Symlink(filepath.Join(dir, e.Name()), filepath.Join(bin, e.Name()))
+		}
+	}
+	if _, err := os.Stat(filepath.Join(bin, "bash")); err != nil {
+		t.Skip("bash isn't in " + filepath.Dir(bash))
+	}
+	cmd := exec.Command(path(".claude/hooks/docs-lint-stop.sh"))
+	cmd.Env = append(os.Environ(), "PATH="+bin, "CLAUDE_PROJECT_DIR="+repo)
+	cmd.Stdin = strings.NewReader(`{"stop_hook_active": true}`)
+	out, _ := cmd.CombinedOutput()
+	if code := cmd.ProcessState.ExitCode(); code != 0 {
+		t.Errorf("exit %d without jq, want 0:\n%s", code, out)
+	}
+}
+
+func TestReferrersCountOnlyErrorsAboutTheEditedPage(t *testing.T) {
+	requireRegistry(t)
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	write(t, path("docs/x/README.md"), "# X\n")
+	write(t, path("docs/x/x.md"), "---\ntype: reference\n---\n\n# X page\n\n## Section one\n")
+	write(t, path("docs/x/my page.md"), "---\ntype: reference\n---\n\n# My page\n\n## Renamed\n")
+	// An unrelated page that mentions README.md and index.md, with an old
+	// broken link of its own.
+	write(t, path("docs/y/other.md"), "---\ntype: reference\n---\n\n# Other\n\n- [Index](../x/README.md)\n- [Index page](index.md)\n- [Missing](missing.md)\n")
+	// A page that links to the edited page with %20 for the space.
+	write(t, path("docs/y/linker.md"), "---\ntype: reference\n---\n\n# Linker\n\n- [Mine](../x/my%20page.md#section-one)\n")
+	lint := func(page string) (int, string) {
+		cmd := exec.Command(path("scripts/docs-lint.sh"), "--with-referrers", path(page))
+		cmd.Env = append(os.Environ(), "PATH="+os.Getenv("PATH"))
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+	for _, page := range []string{"docs/x/README.md", "docs/x/x.md"} {
+		if _, out := lint(page); strings.Contains(out, "missing.md") || !strings.Contains(out, "== markdownlint\nOK") {
+			t.Errorf("%s: an unrelated error in another page counted:\n%s", page, out)
+		}
+	}
+	if _, out := lint("docs/x/my page.md"); !strings.Contains(out, "my%20page.md#section-one") {
+		t.Errorf("broken %%20 link to the edited page not reported:\n%s", out)
+	}
+
+	// A referring page with the same name: only its errors about the edited
+	// page count, not an unrelated one.
+	write(t, path("docs/a/README.md"), "# A\n\n- [B](../b/README.md)\n")
+	write(t, path("docs/b/README.md"), "# B\n\n- [A](../a/README.md)\n\n\n\nText.\n")
+	if _, out := lint("docs/a/README.md"); !strings.Contains(out, "== markdownlint\nOK") {
+		t.Errorf("an unrelated error in a same-named page counted:\n%s", out)
+	}
+
+	// markdownlint percent-encodes non-ASCII names in its messages.
+	write(t, path("docs/a/über (v2).md"), "---\ntype: reference\n---\n\n# Über\n")
+	write(t, path("docs/b/ref.md"), "---\ntype: reference\n---\n\n# Ref\n\n- [Über](<../a/über (v2).md#old-heading>)\n")
+	if _, out := lint("docs/a/über (v2).md"); !strings.Contains(out, "docs/b/ref.md") {
+		t.Errorf("broken link to a non-ASCII name not reported:\n%s", out)
 	}
 }

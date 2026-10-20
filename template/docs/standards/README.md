@@ -32,9 +32,9 @@ The script runs four checks, and fails on errors:
 | Page is in an area directory, and declares a Diátaxis type | `scripts/docs-lint.sh` | [structure.md](structure.md) |
 | No instructions left from a template | `scripts/docs-lint.sh` | [templates/](templates/) |
 | Prose style | [Vale](https://vale.sh/) | `.vale.ini`, `.vale/styles/{{STYLE}}/`, and the {{STYLE}} vocabulary |
-| Markdown syntax, and relative links that point to files and headings that exist | [markdownlint](https://github.com/DavidAnson/markdownlint) | `.markdownlint-cli2.jsonc` |
+| Markdown syntax, and relative links that point to files and headings that exist, with links that start with `/` checked from the repository root | [markdownlint](https://github.com/DavidAnson/markdownlint) | `.markdownlint-cli2.jsonc` |
 
-In Claude Code, a hook runs the same script after every edit to a file in `docs/`, and sends errors back to the agent to fix.
+In Claude Code, hooks run the same script after every edit to a file in `docs/`, and on all of `docs/` before the agent finishes if `docs/` has uncommitted changes. They send errors back to the agent to fix.
 
 Vale doesn't check the files in `docs/standards/`, because they quote bad examples on purpose. markdownlint still checks them.
 
@@ -54,8 +54,7 @@ The Google rules come from the [errata-ai/Google](https://github.com/errata-ai/G
 
 1. Read the [Google style guide's change log](https://developers.google.com/style/whats-new) and the package's [release notes](https://github.com/errata-ai/Google/releases) since the pinned version.
 1. Change the version in the `Packages` URL in `.vale.ini`.
-1. Delete `.vale/styles/Google/`, then run `vale sync`.
-1. Run `scripts/docs-lint.sh`, and decide for each new alert whether to fix the pages or record a change in [style-guide.md](style-guide.md).
+1. Run `scripts/docs-lint.sh`. It downloads the new version, because the `Packages` line changed. Every other clone of the repository downloads it on its next run too. Decide for each new alert whether to fix the pages or record a change in [style-guide.md](style-guide.md).
 
 The Vale package is maintained separately from the guide and can lag behind it, so read the change log even when the package hasn't changed.
 

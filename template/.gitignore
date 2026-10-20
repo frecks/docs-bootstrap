@@ -1,2 +1,7 @@
 # Downloaded by `vale sync`; the version is pinned in .vale.ini.
 .vale/styles/Google/
+.vale/styles/Google.old/
+
+# Installed by scripts/docs-lint.sh from .markdownlint/package-lock.json.
+.markdownlint/node_modules/
+.markdownlint/.next/

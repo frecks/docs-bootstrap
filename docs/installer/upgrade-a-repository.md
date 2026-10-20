@@ -28,6 +28,7 @@ While the version is 0.x, the system isn't stable, and the installer doesn't mig
    - **Updated:** files you hadn't edited, now at the new version.
    - **Conflicts, left unchanged:** files you edited, which the installer kept.
    - **Not restored:** files you deleted, which the installer leaves deleted.
+   - **Not updated:** seed files, such as the pages in `docs/documentation/`, that differ from the new version because you edited them, or because an installer before 0.4.0 created them without recording a hash. The installer lists each one once for each new version. If you haven't edited one, take the new version with `--replace` and its path, as for a conflict.
 
 1. For each conflict, compare your version with the new one:
 
@@ -56,7 +57,7 @@ Run the installer again:
 docs-bootstrap ../my-repo
 ```
 
-If you took every new version, the output ends with this message:
+If you took every new version, the output includes this message:
 
 ```text
 Already up to date.

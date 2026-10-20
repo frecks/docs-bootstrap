@@ -22,8 +22,9 @@
     // Allow <kbd> for keyboard keys; no other inline HTML.
     "no-inline-html": { "allowed_elements": ["kbd"] },
     // Relative links point to files that exist, and to headings that exist
-    // in them. scripts/docs-lint.sh pins the package version.
-    "relative-links": true
+    // in them. Links that start with "/" are checked from the repository
+    // root. .markdownlint/package-lock.json pins the package version.
+    "relative-links": { "root_path": "." }
   },
   "customRules": ["markdownlint-rule-relative-links"],
   "globs": ["docs/**/*.md"]
