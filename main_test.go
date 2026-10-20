@@ -163,8 +163,8 @@ func TestNamesKeepTheirCase(t *testing.T) {
 	}
 	for _, test := range tests {
 		opts, err := resolveOptions("", filepath.Join("/tmp", test.dir), options{})
-		if err != nil || opts.Name != test.name || opts.Style != test.style {
-			t.Errorf("%s: name %q, style %q, %v; want %q, %q", test.dir, opts.Name, opts.Style, err, test.name, test.style)
+		if style := styleName(opts.Name); err != nil || opts.Name != test.name || style != test.style {
+			t.Errorf("%s: name %q, style %q, %v; want %q, %q", test.dir, opts.Name, style, err, test.name, test.style)
 		}
 	}
 	if _, err := resolveOptions("", "/", options{}); err == nil {
@@ -223,6 +223,11 @@ func TestUsageErrorsCreateNothing(t *testing.T) {
 		if _, err := os.Stat(repo); err == nil {
 			t.Errorf("%v created the target", args)
 		}
+	}
+	// A root TARGET without --name fails after the manifest is read, but
+	// before anything is written.
+	if code, out := install(t, "/"); code != 2 || !strings.Contains(out, "give --name") {
+		t.Errorf("root TARGET: exit %d:\n%s", code, out)
 	}
 }
 

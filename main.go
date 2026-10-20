@@ -125,9 +125,8 @@ func normalizeNewlines(text string) string {
 }
 
 type options struct {
-	Name  string `json:"name"`
-	Date  string `json:"date"`
-	Style string `json:"-"` // derived from Name
+	Name string `json:"name"`
+	Date string `json:"date"`
 }
 
 type manifest struct {
@@ -612,7 +611,7 @@ func (in *installer) saveManifest() error {
 func variablesFor(opts options) map[string]string {
 	return map[string]string{
 		"PROJECT": opts.Name,
-		"STYLE":   opts.Style,
+		"STYLE":   styleName(opts.Name),
 		"DATE":    opts.Date,
 	}
 }
@@ -636,12 +635,17 @@ func capitalize(s string) string {
 	return string(r)
 }
 
-// styleName joins the words of name, each with its first letter upper-cased,
-// and drops everything that isn't a letter or digit.
+// styleName returns the Vale style name for a project: the words of name,
+// each with its first letter upper-cased, without anything that isn't a
+// letter or digit. If that doesn't start with a letter, it's HouseRules.
 func styleName(name string) string {
 	var b strings.Builder
 	for _, word := range alnumWords.FindAllString(name, -1) {
 		b.WriteString(capitalize(word))
+	}
+	if !validStyle.MatchString(b.String()) {
+		// Such as a name that starts with a digit.
+		return "HouseRules"
 	}
 	return b.String()
 }
@@ -650,7 +654,7 @@ func styleName(name string) string {
 type usageError struct{ error }
 
 // resolveOptions combines the --name option with the options saved by a
-// previous run. The style name comes from the project name.
+// previous run.
 func resolveOptions(name, target string, saved options) (options, error) {
 	base := filepath.Base(target)
 	if base == string(filepath.Separator) {
@@ -662,11 +666,6 @@ func resolveOptions(name, target string, saved options) (options, error) {
 	}
 	if opts.Name == "" {
 		return opts, usageError{errors.New("TARGET has no directory name; give --name")}
-	}
-	opts.Style = styleName(opts.Name)
-	if !validStyle.MatchString(opts.Style) {
-		// Such as a name that starts with a digit.
-		opts.Style = "HouseRules"
 	}
 	return opts, nil
 }
@@ -819,7 +818,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if *dryRun {
 		dry = "Dry run: "
 	}
-	fmt.Fprintf(stdout, "%sdocs-bootstrap %s (style %s) in %s\n", dry, version, opts.Style, target)
+	fmt.Fprintf(stdout, "%sdocs-bootstrap %s (style %s) in %s\n", dry, version, styleName(opts.Name), target)
 	if err := in.run(); err != nil {
 		return fail(1, "%v", err)
 	}
