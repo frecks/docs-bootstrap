@@ -5,7 +5,7 @@
 # With no arguments, checks every Markdown file in docs/.
 #
 # Runs five checks:
-#   1. Placement and type: each page is in a component directory, and declares
+#   1. Placement and type: each page is in an area directory, and declares
 #      its Diátaxis type in frontmatter.
 #   2. Template instructions: no leftover comments from the templates.
 #   3. Links: relative links point to files that exist (scripts/check-links.py).
@@ -38,7 +38,7 @@ fi
 status=0
 
 echo "== Placement and type"
-# Pages live in a component directory, such as docs/api/, and declare their
+# Pages live in an area directory, such as docs/api/, and declare their
 # Diátaxis type in frontmatter. README.md files are indexes and have no type.
 type_ok=1
 for f in "${files[@]}"; do
@@ -46,7 +46,7 @@ for f in "${files[@]}"; do
     docs/standards/* | */README.md) continue ;;
     docs/*/*) ;;
     docs/*)
-      echo "$f: put pages in a component directory, such as docs/api/. See docs/standards/structure.md."
+      echo "$f: put pages in an area directory, such as docs/api/. See docs/standards/structure.md."
       type_ok=0
       continue
       ;;

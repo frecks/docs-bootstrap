@@ -12,7 +12,7 @@ The installer in `main.go` installs a documentation system into other repositori
 <!-- docs-bootstrap:begin -->
 ## Documentation
 
-Documentation lives in `docs/`, grouped in directories by component, such as `docs/api/`. Each page declares its [Diátaxis](https://diataxis.fr/) type in frontmatter: `tutorial`, `how-to`, `reference`, or `explanation`. `docs/README.md` indexes every page.
+Documentation lives in `docs/`, grouped in directories by area, such as a component or a system, as in `docs/api/`. Each page declares its [Diátaxis](https://diataxis.fr/) type in frontmatter: `tutorial`, `how-to`, `reference`, or `explanation`. `docs/README.md` indexes every page.
 
 The rules live in `docs/standards/`, starting at `docs/standards/README.md`. They're the single source of truth, so don't restate them elsewhere. Our style is the Google developer documentation style guide plus the changes in `docs/standards/style-guide.md`.
 
@@ -29,5 +29,5 @@ scripts/docs-lint.sh docs/path/to/page.md
 
 In Claude Code, a hook in `.claude/settings.json` runs this after each edit to `docs/`, and returns errors for you to fix.
 
-When you change the tool, update the pages that describe it in the same change.
+When you change code or configuration, update the pages that describe it in the same change.
 <!-- docs-bootstrap:end -->

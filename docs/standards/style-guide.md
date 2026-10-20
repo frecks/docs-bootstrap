@@ -14,9 +14,17 @@ For quick reference, the Google rules that matter most here are:
 
 ## Audience
 
-Write for a developer who knows the languages and tools this tool uses, but doesn't know this codebase or why it's built this way. That includes your future self, and agents.
+Write for a technical reader who knows the common tools and technologies this project uses, but doesn't know this project or why it's built and set up the way it is. That includes your future self, and agents.
 
-**Why:** Google writes for a broad, global audience, which leads to explaining concepts our readers already know. Explaining this tool's own design is what's missing when someone needs to change it.
+**Why:** Google writes for a broad, global audience, which leads to explaining concepts our readers already know. Explaining this project's own design and choices is what's missing when someone needs to change it or something breaks.
+
+**Enforced by:** review.
+
+## Real values and placeholders
+
+When the reader needs to copy a value that exists in this project, such as a hostname, IP address, path, or port, use the real value, not `example.com` or a documentation IP range. When the reader supplies their own value, use a placeholder in uppercase with underscores, such as `YOUR_DOMAIN`, and say what to replace it with.
+
+**Why:** a page about one specific system is only useful if the reader can copy its real values. Google's placeholder rules are for docs that many people adapt, which is where a placeholder belongs.
 
 **Enforced by:** review.
 
@@ -31,6 +39,16 @@ curl -H "Authorization: Bearer API_TOKEN" https://api.example.com/v1/status
 **Why:** the repository may be shared or published, and a secret in history is hard to remove.
 
 **Enforced by:** Vale (`DocsBootstrap.Secrets`, error).
+
+## Say where a command runs
+
+When a command runs somewhere other than the reader's own machine, such as on a server, in a container, or as another user, name the host and user before the procedure, and again before any command that runs somewhere different from the previous one:
+
+> On `HOST`, as `root`:
+
+**Why:** a command run on the wrong host can do damage. Google's guide assumes a single machine.
+
+**Enforced by:** review.
 
 ## Commands and output
 
@@ -93,7 +111,7 @@ Use a serial comma, as Google does: "names, paths, and values".
 
 ## "We"
 
-Use "we" only for the people who maintain this tool, as in "We chose PostgreSQL because…", and only where it's clear who that is. Never use "we" to mean the reader and the writer together, as in "Next, we create a user". Address the reader as "you".
+Use "we" only for the people who maintain this project, as in "We chose PostgreSQL because…", and only where it's clear who that is. Never use "we" to mean the reader and the writer together, as in "Next, we create a user". Address the reader as "you".
 
 **Why:** Google says to [use first-person plural pronouns carefully](https://developers.google.com/style/person#use-first-person-plural-pronouns-carefully), not to avoid them. "We" fits best in explanation pages, which record decisions and who made them.
 

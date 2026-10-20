@@ -45,7 +45,7 @@ docs-bootstrap --version
 The output shows the version, such as:
 
 ```text
-docs-bootstrap 0.1.2
+docs-bootstrap 0.2.0
 ```
 
 ## Update

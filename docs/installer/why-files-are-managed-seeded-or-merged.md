@@ -40,7 +40,7 @@ Files such as `.gitignore`, `.claude/settings.json`, and `AGENTS.md` hold settin
 
 ### The installer saves options
 
-The installer saves its options, such as the profile and style name, in `.docs-bootstrap.json`. An upgrade then renders the template the same way as the first install. Without this, forgetting an option on upgrade would turn every managed file into a change.
+The installer saves its options, the project name and the date of the first install, in `.docs-bootstrap.json`. An upgrade then renders the template the same way as the first install, including the Vale style name, which comes from the project name. Without this, forgetting an option on upgrade would turn every managed file into a change.
 
 ## Alternatives considered
 

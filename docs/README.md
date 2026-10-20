@@ -1,6 +1,6 @@
 # Docs bootstrap documentation
 
-Documentation for Docs bootstrap, grouped by component. Each page has a type: a tutorial teaches, a how-to guide completes a task, a reference page lists facts, and an explanation page gives reasons. To write or review a page, start with the [documentation standards](standards/README.md).
+Documentation for Docs bootstrap, grouped by area. Each page has a type: a tutorial teaches, a how-to guide completes a task, a reference page lists facts, and an explanation page gives reasons. To write or review a page, start with the [documentation standards](standards/README.md).
 
 ## Installer
 

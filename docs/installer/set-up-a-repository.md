@@ -10,29 +10,22 @@ Install the documentation system into a new or existing repository. The reposito
 
 - The `docs-bootstrap` command. See [Install docs-bootstrap](install-docs-bootstrap.md).
 - A clean working tree in the target repository, if it already exists, so you can review the changes with `git diff`.
-- The tools the checks need, which are listed in [Check documentation](../documentation/check-documentation.md#before-you-begin).
-
-## Choose a profile
-
-Pick the profile that matches what the repository describes. See [Options](options.md#profiles) for the differences.
-
-- `software` is the default, for code that people build and change.
-- `infrastructure` is for servers, networks, and other systems that people operate. It adds rules for real hostnames and for naming the host before each command.
+- The tools the checks need. See [Check documentation](../documentation/check-documentation.md#before-you-begin).
 
 ## Install
 
 1. Preview the changes:
 
    ```bash
-   docs-bootstrap ../my-repo --profile software --dry-run
+   docs-bootstrap ../my-repo --dry-run
    ```
 
-   Replace `../my-repo` with the path to your repository. The output lists each file the installer would create, merge, or leave alone.
+   Replace `../my-repo` with the path to your repository. The installer takes the project name from the directory name, such as `My repo`, and names the Vale style after it, such as `MyRepo`. To use a different name, add `--name`, as described in [Options](options.md). The output lists each file the installer would create, merge, or leave alone.
 
 1. Run the same command without `--dry-run`:
 
    ```bash
-   docs-bootstrap ../my-repo --profile software
+   docs-bootstrap ../my-repo
    ```
 
    If the directory doesn't exist, the installer creates it.

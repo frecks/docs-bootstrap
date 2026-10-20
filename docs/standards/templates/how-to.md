@@ -16,7 +16,7 @@ type: how-to
 
 ## STEP_GROUP_NAME
 
-<!-- Template: One section per group of steps, or a single "Steps" list for a short task. Each step is one action. -->
+<!-- Template: One section per group of steps, or a single "Steps" list for a short task. Each step is one action. If commands run somewhere other than the reader's own machine, name the host and user first, as in "On `HOST`, as `USER`:". -->
 
 1. ACTION.
 

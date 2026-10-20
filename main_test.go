@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 )
@@ -93,64 +92,31 @@ func copyDir(t *testing.T, dir string) string {
 }
 
 func TestFreshInstallRendersEveryFile(t *testing.T) {
-	names := make([]string, 0, len(profiles))
-	for name := range profiles {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	for _, name := range names {
-		t.Run(name, func(t *testing.T) {
-			repo, path := sampleRepo(t)
-			if code, out := install(t, repo, "--profile", name); code != 0 {
-				t.Fatalf("exit %d:\n%s", code, out)
-			}
-			err := filepath.WalkDir(repo, func(full string, d fs.DirEntry, err error) error {
-				if err == nil && d.Type().IsRegular() && strings.Contains(read(t, full), "{{") {
-					t.Errorf("%s: unrendered template marker", full)
-				}
-				return err
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-			info, err := os.Stat(path("scripts/docs-lint.sh"))
-			if err != nil || info.Mode()&0o100 == 0 {
-				t.Errorf("scripts/docs-lint.sh isn't executable: %v", err)
-			}
-			if link := readlink(t, path("CLAUDE.md")); link != "AGENTS.md" {
-				t.Errorf("CLAUDE.md links to %q", link)
-			}
-			if link := readlink(t, path(".claude/skills/docs-write")); link != "../../.agents/skills/docs-write" {
-				t.Errorf(".claude/skills/docs-write links to %q", link)
-			}
-			if info, err := os.Stat(path(".vale/styles/SampleRepo")); err != nil || !info.IsDir() {
-				t.Errorf(".vale/styles/SampleRepo isn't a directory: %v", err)
-			}
-		})
-	}
-}
-
-func TestProfilesDifferWhereIntended(t *testing.T) {
 	repo, path := sampleRepo(t)
-	install(t, repo, "--profile", "infrastructure", "--noun", "service")
-	guide := read(t, path("docs/standards/style-guide.md"))
-	if !strings.Contains(guide, "## Say where a command runs") || !strings.Contains(guide, "this service") {
-		t.Error("infrastructure style guide is missing its section or noun")
+	if code, out := install(t, repo); code != 0 {
+		t.Fatalf("exit %d:\n%s", code, out)
 	}
-	if !strings.Contains(read(t, path(".agents/skills/docs-review/SKILL.md")), "path, hostname, address, port,") {
-		t.Error("infrastructure docs-review skill doesn't check hostnames and ports")
+	err := filepath.WalkDir(repo, func(full string, d fs.DirEntry, err error) error {
+		if err == nil && d.Type().IsRegular() && strings.Contains(read(t, full), "{{") {
+			t.Errorf("%s: unrendered template marker", full)
+		}
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	repo, path = sampleRepo(t)
-	install(t, repo, "--profile", "software")
-	if strings.Contains(read(t, path("docs/standards/style-guide.md")), "## Say where a command runs") {
-		t.Error("software style guide has the infrastructure section")
+	info, err := os.Stat(path("scripts/docs-lint.sh"))
+	if err != nil || info.Mode()&0o100 == 0 {
+		t.Errorf("scripts/docs-lint.sh isn't executable: %v", err)
 	}
-	if strings.Contains(read(t, path(".agents/skills/docs-write/SKILL.md")), "Name the host") {
-		t.Error("software docs-write skill has the infrastructure rule")
+	if link := readlink(t, path("CLAUDE.md")); link != "AGENTS.md" {
+		t.Errorf("CLAUDE.md links to %q", link)
 	}
-	if strings.Contains(read(t, path(".agents/skills/docs-review/SKILL.md")), "hostname") {
-		t.Error("software docs-review skill has the infrastructure accuracy check")
+	if link := readlink(t, path(".claude/skills/docs-write")); link != "../../.agents/skills/docs-write" {
+		t.Errorf(".claude/skills/docs-write links to %q", link)
+	}
+	if info, err := os.Stat(path(".vale/styles/SampleRepo")); err != nil || !info.IsDir() {
+		t.Errorf(".vale/styles/SampleRepo isn't a directory: %v", err)
 	}
 }
 
@@ -174,37 +140,16 @@ func TestSecondRunChangesNothing(t *testing.T) {
 	}
 }
 
-func TestOptionsAreRemembered(t *testing.T) {
+func TestNameIsRemembered(t *testing.T) {
 	repo, path := sampleRepo(t)
-	install(t, repo, "--profile", "infrastructure", "--style", "Lab")
+	install(t, repo, "--name", "Acme lab")
 	install(t, repo)
 	options := readJSON(t, path(".docs-bootstrap.json"))["options"].(map[string]any)
-	if options["profile"] != "infrastructure" || options["style"] != "Lab" {
-		t.Errorf("options = %v", options)
+	if options["name"] != "Acme lab" || len(options) != 2 {
+		t.Errorf("options = %v, want only the name and date", options)
 	}
-}
-
-func TestDefaultsFollowTheProfile(t *testing.T) {
-	repo, path := sampleRepo(t)
-	install(t, repo, "--profile", "software")
-	install(t, repo, "--profile", "infrastructure")
-	if !strings.Contains(read(t, path("docs/standards/style-guide.md")), "this environment") {
-		t.Error("noun didn't follow the new profile")
-	}
-	options := readJSON(t, path(".docs-bootstrap.json"))["options"].(map[string]any)
-	if options["noun"] != nil || options["audience"] != nil {
-		t.Errorf("defaults were saved: %v", options)
-	}
-
-	// A given value is saved, and "" goes back to the default.
-	install(t, repo, "--noun", "service")
-	install(t, repo)
-	if options := readJSON(t, path(".docs-bootstrap.json"))["options"].(map[string]any); options["noun"] != "service" {
-		t.Errorf("noun = %v, want service", options["noun"])
-	}
-	install(t, repo, "--noun", "")
-	if options := readJSON(t, path(".docs-bootstrap.json"))["options"].(map[string]any); options["noun"] != nil {
-		t.Errorf("noun = %v, want the default", options["noun"])
+	if info, err := os.Stat(path(".vale/styles/AcmeLab")); err != nil || !info.IsDir() {
+		t.Errorf(".vale/styles/AcmeLab isn't a directory: %v", err)
 	}
 }
 
@@ -214,15 +159,15 @@ func TestNamesKeepTheirCase(t *testing.T) {
 		{"my-API_server", "My API server", "MyAPIServer"},
 		{"acme2go", "Acme2go", "Acme2go"},
 		{"-x-", "X", "X"},
-		{"2048-game", "2048 game", "House"},
+		{"2048-game", "2048 game", "HouseRules"},
 	}
 	for _, test := range tests {
-		opts, err := resolveOptions(flags{}, filepath.Join("/tmp", test.dir), options{})
-		if err != nil || opts.Name != test.name || opts.Style != test.style {
-			t.Errorf("%s: name %q, style %q, %v; want %q, %q", test.dir, opts.Name, opts.Style, err, test.name, test.style)
+		opts, err := resolveOptions("", filepath.Join("/tmp", test.dir), options{})
+		if style := styleName(opts.Name); err != nil || opts.Name != test.name || style != test.style {
+			t.Errorf("%s: name %q, style %q, %v; want %q, %q", test.dir, opts.Name, style, err, test.name, test.style)
 		}
 	}
-	if _, err := resolveOptions(flags{}, "/", options{}); err == nil {
+	if _, err := resolveOptions("", "/", options{}); err == nil {
 		t.Error("a root target without --name didn't fail")
 	}
 }
@@ -236,7 +181,7 @@ func TestVersion(t *testing.T) {
 
 func TestCommandLineErrorsExitTwo(t *testing.T) {
 	repo, _ := sampleRepo(t)
-	for _, args := range [][]string{{"--style", "1x"}, {"--replace", "docs/README.md"}, {"--profile", "x"}, {"--bogus"}} {
+	for _, args := range [][]string{{"--replace", "docs/README.md"}, {"--profile", "software"}, {"--bogus"}} {
 		if code, _ := install(t, repo, args...); code != 2 {
 			t.Errorf("%v: exit %d, want 2", args, code)
 		}
@@ -246,12 +191,14 @@ func TestCommandLineErrorsExitTwo(t *testing.T) {
 func TestOptionsMayFollowOrPrecedeTarget(t *testing.T) {
 	repo, path := sampleRepo(t)
 	var out bytes.Buffer
-	if code := run([]string{"--style", "Lab", repo, "--profile", "infrastructure"}, &out, &out); code != 0 {
+	if code := run([]string{"--name", "Lab", repo, "--dry-run"}, &out, &out); code != 0 {
 		t.Fatalf("exit %d:\n%s", code, out.String())
 	}
-	options := readJSON(t, path(".docs-bootstrap.json"))["options"].(map[string]any)
-	if options["profile"] != "infrastructure" || options["style"] != "Lab" {
-		t.Errorf("options = %v", options)
+	if !strings.HasPrefix(out.String(), "Dry run: ") || !strings.Contains(out.String(), "(style Lab)") {
+		t.Errorf("options before and after TARGET weren't both used:\n%s", out.String())
+	}
+	if _, err := os.Stat(path(".")); err == nil {
+		t.Error("dry run created the target")
 	}
 }
 
@@ -264,18 +211,23 @@ func TestArgumentsAfterDoubleDashArePositional(t *testing.T) {
 
 func TestDoubleDashAfterAFlagValueEndsOptions(t *testing.T) {
 	repo, _ := sampleRepo(t)
-	if code, _ := install(t, "--name", "--noun", "--", repo, "--dry-run"); code != 2 {
+	if code, _ := install(t, "--name", "--diff", "--", repo, "--dry-run"); code != 2 {
 		t.Errorf("exit %d, want 2 for two targets", code)
 	}
 }
 
 func TestUsageErrorsCreateNothing(t *testing.T) {
 	repo, _ := sampleRepo(t)
-	for _, args := range [][]string{{"--style", "1x"}, {"--replace", "README.md"}} {
+	for _, args := range [][]string{{"--profile", "software"}, {"--replace", "README.md"}} {
 		install(t, repo, args...)
 		if _, err := os.Stat(repo); err == nil {
 			t.Errorf("%v created the target", args)
 		}
+	}
+	// A root TARGET without --name fails after the manifest is read, but
+	// before anything is written.
+	if code, out := install(t, "/"); code != 2 || !strings.Contains(out, "give --name") {
+		t.Errorf("root TARGET: exit %d:\n%s", code, out)
 	}
 }
 
@@ -306,11 +258,11 @@ func TestDuplicateAgentsSectionsAreAConflict(t *testing.T) {
 
 func TestDoubleDashMayBeAFlagValue(t *testing.T) {
 	repo, path := sampleRepo(t)
-	if code, out := install(t, "--audience", "--", repo); code != 0 {
+	if code, out := install(t, "--name", "--", repo); code != 0 {
 		t.Fatalf("exit %d:\n%s", code, out)
 	}
-	if options := readJSON(t, path(".docs-bootstrap.json"))["options"].(map[string]any); options["audience"] != "--" {
-		t.Errorf("audience = %v, want --", options["audience"])
+	if options := readJSON(t, path(".docs-bootstrap.json"))["options"].(map[string]any); options["name"] != "--" {
+		t.Errorf("name = %v, want --", options["name"])
 	}
 }
 
@@ -518,19 +470,12 @@ func TestDryRunWritesNothing(t *testing.T) {
 }
 
 func TestRender(t *testing.T) {
-	vars := map[string]string{"NOUN": "project"}
-	tests := []struct{ in, want string }{
-		{"this {{NOUN}}", "this project"},
-		{"a{{#software}}b{{/software}}{{#infrastructure}}c{{/infrastructure}}d", "abd"},
-		{"a\n{{#software}}\nb\n{{/software}}\n{{#infrastructure}}\nc\n{{/infrastructure}}\nd\n", "a\nb\nd\n"},
+	vars := map[string]string{"PROJECT": "Acme"}
+	if got, err := render("# {{PROJECT}} documentation", vars); err != nil || got != "# Acme documentation" {
+		t.Errorf("render = %q, %v", got, err)
 	}
-	for _, test := range tests {
-		if got, err := render(test.in, vars, "software"); err != nil || got != test.want {
-			t.Errorf("render(%q) = %q, %v; want %q", test.in, got, err, test.want)
-		}
-	}
-	for _, in := range []string{"{{UNKNOWN}}", "{{#software}}unclosed", "{{ NOUN }}"} {
-		if _, err := render(in, vars, "software"); err == nil {
+	for _, in := range []string{"{{UNKNOWN}}", "{{#software}}a{{/software}}", "{{ PROJECT }}"} {
+		if _, err := render(in, vars); err == nil {
 			t.Errorf("render(%q) didn't fail", in)
 		}
 	}

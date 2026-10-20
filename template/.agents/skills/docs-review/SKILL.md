@@ -21,9 +21,9 @@ Linters handle what can be checked mechanically. Your job is what they can't che
 
 1. **Read the standards:** `docs/standards/structure.md`, `docs/standards/style-guide.md`, and `docs/standards/review-checklist.md`.
 
-1. **Check the type.** Decide what type the page is from its content, then compare it with the `type` in its frontmatter. Report a mismatch, and any part that belongs to a different type, and say where it should go. Check that the page is in the directory of the {{AREA}} a reader would look in first.
+1. **Check the type.** Decide what type the page is from its content, then compare it with the `type` in its frontmatter. Report a mismatch, and any part that belongs to a different type, and say where it should go. Check that the page is in the directory of the area a reader would look in first.
 
-1. **Check accuracy.** {{#infrastructure}}For each command, path, hostname, address, port, and claim about how a tool behaves,{{/infrastructure}}{{#software}}For each command, path, name, address, value, and claim about how a tool or the code behaves,{{/software}} find the source and confirm it matches. Sources are, in order of preference: files in the repository, the tool's own documentation, then the running system. If the only evidence is weak, such as a file date, or there's none, list the fact as unconfirmed. Don't run commands that change a system to check a page.
+1. **Check accuracy.** For each command, path, name, value, hostname, address, port, and claim about how a tool or the code behaves, find the source and confirm it matches. Sources are, in order of preference: files in the repository, the tool's own documentation, then the running system. If the only evidence is weak, such as a file date, or there's none, list the fact as unconfirmed. Don't run commands that change a system to check a page.
 
 1. **Go through `docs/standards/review-checklist.md`** item by item. Skip items that don't apply to the page's type, without listing them.
 

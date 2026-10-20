@@ -14,59 +14,42 @@ For quick reference, the Google rules that matter most here are:
 
 ## Audience
 
-Write for {{AUDIENCE}}. That includes your future self, and agents.
+Write for a technical reader who knows the common tools and technologies this project uses, but doesn't know this project or why it's built and set up the way it is. That includes your future self, and agents.
 
-{{#infrastructure}}
-**Why:** Google writes for a broad, global audience, which leads to explaining concepts our readers already know. Explaining this {{NOUN}}'s own choices is what's missing when something breaks.
-{{/infrastructure}}
-{{#software}}
-**Why:** Google writes for a broad, global audience, which leads to explaining concepts our readers already know. Explaining this {{NOUN}}'s own design is what's missing when someone needs to change it.
-{{/software}}
+**Why:** Google writes for a broad, global audience, which leads to explaining concepts our readers already know. Explaining this project's own design and choices is what's missing when someone needs to change it or something breaks.
 
 **Enforced by:** review.
 
-{{#infrastructure}}
-## Real names and addresses
+## Real values and placeholders
 
-Use the real hostnames, IP addresses, paths, and ports of this {{NOUN}}, not `example.com` or documentation IP ranges.
+When the reader needs to copy a value that exists in this project, such as a hostname, IP address, path, or port, use the real value, not `example.com` or a documentation IP range. When the reader supplies their own value, use a placeholder in uppercase with underscores, such as `YOUR_DOMAIN`, and say what to replace it with.
 
-**Why:** these pages describe one specific environment, and a reader needs to copy the real value. Google's placeholder rules are for docs that many people adapt.
+**Why:** a page about one specific system is only useful if the reader can copy its real values. Google's placeholder rules are for docs that many people adapt, which is where a placeholder belongs.
 
 **Enforced by:** review.
 
-{{/infrastructure}}
 ## Secrets
 
 Never put a private key, password, or token in a page. Use a placeholder in uppercase with underscores, such as `API_TOKEN`, and say where the real value is stored.
 
-{{#infrastructure}}
-```ini
-[database]
-password = DB_PASSWORD
-```
-{{/infrastructure}}
-{{#software}}
 ```bash
 curl -H "Authorization: Bearer API_TOKEN" https://api.example.com/v1/status
 ```
-{{/software}}
 
 **Why:** the repository may be shared or published, and a secret in history is hard to remove.
 
 **Enforced by:** Vale (`{{STYLE}}.Secrets`, error).
 
-{{#infrastructure}}
 ## Say where a command runs
 
-Before each procedure, or before any command that runs on a different host from the previous one, name the host and the user:
+When a command runs somewhere other than the reader's own machine, such as on a server, in a container, or as another user, name the host and user before the procedure, and again before any command that runs somewhere different from the previous one:
 
 > On `HOST`, as `root`:
 
-**Why:** this {{NOUN}} has many hosts, and a command run on the wrong one can do damage. Google's guide assumes a single machine.
+**Why:** a command run on the wrong host can do damage. Google's guide assumes a single machine.
 
 **Enforced by:** review.
 
-{{/infrastructure}}
 ## Commands and output
 
 - Put commands in a code block with a language, usually `bash`.
@@ -128,7 +111,7 @@ Use a serial comma, as Google does: "names, paths, and values".
 
 ## "We"
 
-Use "we" only for the people who maintain this {{NOUN}}, as in "We chose PostgreSQL because…", and only where it's clear who that is. Never use "we" to mean the reader and the writer together, as in "Next, we create a user". Address the reader as "you".
+Use "we" only for the people who maintain this project, as in "We chose PostgreSQL because…", and only where it's clear who that is. Never use "we" to mean the reader and the writer together, as in "Next, we create a user". Address the reader as "you".
 
 **Why:** Google says to [use first-person plural pronouns carefully](https://developers.google.com/style/person#use-first-person-plural-pronouns-carefully), not to avoid them. "We" fits best in explanation pages, which record decisions and who made them.
 
@@ -149,7 +132,7 @@ Use American spelling, as Google does. Vale's spell checker is off.
 - Use `-` for bulleted lists and `1.` for every item in a numbered list.
 - Use `*` for italic and `**` for bold. Use bold only for UI elements and the label of a definition list item.
 - Write each paragraph on one line.
-- Use relative links between pages, such as `../{{EXAMPLE_AREA}}/settings.md`.
+- Use relative links between pages, such as `../api/settings.md`.
 
 **Why:** Google doesn't set Markdown syntax. These choices make pages consistent and keep diffs small: one-line paragraphs change one line per edit, and `1.` numbering doesn't renumber a list when a step is added.
 
