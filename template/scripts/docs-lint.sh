@@ -31,17 +31,40 @@ set -uo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 markdownlint=.markdownlint/node_modules/.bin/markdownlint-cli2
 
-# install_vale_styles downloads the Google style pinned in .vale.ini, if it's
-# missing. It prints SKIPPED and returns 1 when Vale can't run.
+# install_vale_styles downloads the styles that .vale.ini's Packages line pins,
+# when they're missing or the line has changed since they were downloaded. If
+# the download fails, it keeps the styles it had. It prints SKIPPED and
+# returns 1 when Vale can't run.
 install_vale_styles() {
   if ! command -v vale > /dev/null; then
     echo "SKIPPED: vale is not installed. See docs/documentation/check-documentation.md."
     return 1
   fi
-  if [ ! -d .vale/styles/Google ] && ! vale sync > /dev/null; then
-    echo "SKIPPED: vale sync failed, so Vale can't run."
-    return 1
+  local styles=.vale/styles/Google
+  local stamp="$styles/.docs-lint-packages"
+  local packages
+  packages="$(grep -E '^Packages[[:space:]]*=' .vale.ini)"
+  if [ -d "$styles" ] && [ "$(cat "$stamp" 2> /dev/null)" = "$packages" ]; then
+    return 0
   fi
+  # Sync into an empty directory, so rules removed upstream don't linger.
+  rm -rf "$styles.old"
+  if [ -d "$styles" ]; then
+    mv "$styles" "$styles.old"
+  fi
+  if vale sync > /dev/null; then
+    rm -rf "$styles.old"
+    printf '%s\n' "$packages" > "$stamp"
+    return 0
+  fi
+  rm -rf "$styles"
+  if [ -d "$styles.old" ]; then
+    mv "$styles.old" "$styles"
+    echo "vale sync failed, so Vale is using the styles from before .vale.ini changed."
+    return 0
+  fi
+  echo "SKIPPED: vale sync failed, so Vale can't run."
+  return 1
 }
 
 # install_markdownlint installs the packages locked in
@@ -131,7 +154,17 @@ for f in "${files[@]}"; do
       ;;
     *) continue ;;
   esac
-  type="$(awk 'NR == 1 && $0 != "---" { exit } NR > 1 && $0 == "---" { exit } NR > 1 && sub(/^type:[[:space:]]*/, "") { print; exit }' "$f")"
+  # Allow CRLF line endings, and a quoted value, as in type: "how-to".
+  type="$(awk -v quotes="[\"']" '
+    { sub(/\r$/, "") }
+    NR == 1 && $0 != "---" { exit }
+    NR > 1 && $0 == "---" { exit }
+    NR > 1 && sub(/^type:[[:space:]]*/, "") {
+      sub(/[[:space:]]+$/, "")
+      gsub("^" quotes "|" quotes "$", "")
+      print
+      exit
+    }' "$f")"
   case "$type" in
     tutorial | how-to | reference | explanation) ;;
     "")

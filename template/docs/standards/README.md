@@ -54,8 +54,7 @@ The Google rules come from the [errata-ai/Google](https://github.com/errata-ai/G
 
 1. Read the [Google style guide's change log](https://developers.google.com/style/whats-new) and the package's [release notes](https://github.com/errata-ai/Google/releases) since the pinned version.
 1. Change the version in the `Packages` URL in `.vale.ini`.
-1. Delete `.vale/styles/Google/`, then run `vale sync`.
-1. Run `scripts/docs-lint.sh`, and decide for each new alert whether to fix the pages or record a change in [style-guide.md](style-guide.md).
+1. Run `scripts/docs-lint.sh`. It downloads the new version, because the `Packages` line changed. Every other clone of the repository downloads it on its next run too. Decide for each new alert whether to fix the pages or record a change in [style-guide.md](style-guide.md).
 
 The Vale package is maintained separately from the guide and can lag behind it, so read the change log even when the package hasn't changed.
 

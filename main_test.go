@@ -739,3 +739,67 @@ func TestInstallInstallsLockedLintTools(t *testing.T) {
 		t.Errorf("exit %d, want 3 after trying npm ci again:\n%s", code, out)
 	}
 }
+
+func TestTypeMayBeQuotedOrUseCRLF(t *testing.T) {
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	write(t, path("docs/x/quoted.md"), "---\ntype: \"how-to\"\n---\n\n# Quoted\n")
+	write(t, path("docs/x/crlf.md"), "---\r\ntype: 'reference'\r\n---\r\n\r\n# CRLF\r\n")
+	cmd := exec.Command(path("scripts/docs-lint.sh"), path("docs/x/quoted.md"), path("docs/x/crlf.md"))
+	cmd.Env = append(os.Environ(), "PATH="+fakeTools(t))
+	out, _ := cmd.CombinedOutput()
+	if !strings.Contains(string(out), "== Placement and type\nOK") {
+		t.Errorf("type not read:\n%s", out)
+	}
+}
+
+func TestValeStylesSyncAgainWhenThePinChanges(t *testing.T) {
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	// A fake vale that counts syncs, creates the style, and fails to sync
+	// when FAIL_SYNC is set.
+	bin := t.TempDir()
+	write(t, filepath.Join(bin, "vale"), `#!/bin/sh
+if [ "$1" = sync ]; then
+  echo x >> "$SYNC_LOG"
+  [ -n "$FAIL_SYNC" ] && exit 1
+  mkdir -p .vale/styles/Google && echo synced > .vale/styles/Google/rule.yml
+fi
+exit 0
+`)
+	if err := os.Chmod(filepath.Join(bin, "vale"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	syncLog := filepath.Join(t.TempDir(), "syncs")
+	install := func(failSync string) string {
+		cmd := exec.Command(path("scripts/docs-lint.sh"), "--install")
+		cmd.Env = append(os.Environ(), "PATH="+bin+":"+fakeTools(t), "SYNC_LOG="+syncLog, "FAIL_SYNC="+failSync)
+		out, _ := cmd.CombinedOutput()
+		return string(out)
+	}
+	syncs := func() int {
+		data, _ := os.ReadFile(syncLog)
+		return strings.Count(string(data), "x")
+	}
+
+	install("")
+	install("")
+	if n := syncs(); n != 1 {
+		t.Errorf("synced %d times for an unchanged pin, want 1", n)
+	}
+	ini := path(".vale.ini")
+	write(t, ini, strings.Replace(read(t, ini), "Packages = ", "Packages = https://example.com/Other.zip, ", 1))
+	install("")
+	if n := syncs(); n != 2 {
+		t.Errorf("synced %d times after the pin changed, want 2", n)
+	}
+
+	// A failed sync keeps the styles that were there.
+	write(t, ini, strings.Replace(read(t, ini), "https://example.com/Other.zip, ", "", 1))
+	if out := install("1"); !strings.Contains(out, "using the styles from before") {
+		t.Errorf("failed sync not reported:\n%s", out)
+	}
+	if text := read(t, path(".vale/styles/Google/rule.yml")); text != "synced\n" {
+		t.Errorf("styles lost after a failed sync: %q", text)
+	}
+}
