@@ -103,7 +103,7 @@ It also has costs and limits:
 - Some standards need judgment that no linter has, such as keeping one type per page, naming the host before a procedure, or giving the reason for a design choice. Only [review](../standards/review-checklist.md) catches those.
 - The Google Vale package has its own maintainers, separate from the guide, and can lag behind it. Updating the package is a manual task. See [Track the Google style guide](../standards/README.md#track-the-google-style-guide).
 - The checks need Vale, Node.js 22 or later with npm, and jq on the workstation. The first check in a new clone needs the network, to install Vale's Google style and the markdownlint packages. When a check can't run, the hooks don't block, so an agent can finish without that check.
-- Spell checking is off. Vale still flags a few British spellings, such as `colour` and `-ise` endings, and product names with the wrong capitalization, but no other misspellings.
+- Spell checking is off. Vale still flags a few British spellings, such as `colour` and some `-ise` endings, like `organise`, and product names with the wrong capitalization, but no other misspellings.
 
 Revisit a rule when reviewers keep flagging the same problem. The standards say to turn a problem flagged more than twice into a Vale rule, so that over time tools enforce more of the standard than review does.
 

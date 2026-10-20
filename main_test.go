@@ -961,3 +961,73 @@ func TestReferrersCountOnlyErrorsAboutTheEditedPage(t *testing.T) {
 		t.Errorf("broken link to a non-ASCII name not reported:\n%s", out)
 	}
 }
+
+func TestHooksCheckTheWorktreeTheyRunIn(t *testing.T) {
+	for _, tool := range []string{"git", "jq"} {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Skip(tool + " isn't installed")
+		}
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", repo, "-c", "user.name=Test", "-c", "user.email=test@example.com"}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	git("init", "-q")
+	git("add", "-A")
+	git("commit", "-q", "-m", "Install")
+	worktree := filepath.Join(t.TempDir(), "worktree")
+	git("worktree", "add", "-q", worktree)
+	page := filepath.Join(worktree, "docs", "untyped.md")
+	write(t, page, "# Untyped\n")
+
+	// Claude Code runs the main checkout's hooks, with CLAUDE_PROJECT_DIR set
+	// to the main checkout, even when the session works in a worktree.
+	hook := func(name, input string) (int, string) {
+		cmd := exec.Command(path(".claude/hooks/" + name))
+		cmd.Env = append(os.Environ(), "PATH="+fakeTools(t), "CLAUDE_PROJECT_DIR="+repo)
+		cmd.Stdin = strings.NewReader(input)
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+	if code, out := hook("docs-lint.sh", `{"tool_input": {"file_path": "`+page+`"}}`); code != 2 || !strings.Contains(out, "docs/untyped.md") {
+		t.Errorf("edit hook: exit %d, want 2 for the worktree's page:\n%s", code, out)
+	}
+	if code, out := hook("docs-lint-stop.sh", `{"cwd": "`+worktree+`"}`); code != 2 || !strings.Contains(out, "docs/untyped.md") {
+		t.Errorf("Stop hook: exit %d, want 2 for the worktree's change:\n%s", code, out)
+	}
+	if code, out := hook("docs-lint-stop.sh", `{"cwd": "`+repo+`"}`); code != 0 {
+		t.Errorf("Stop hook in the unchanged main checkout: exit %d, want 0:\n%s", code, out)
+	}
+
+	// A directory inside the project that looks like a docs repository, as
+	// template/ does in docs-bootstrap, isn't checked as one. Its script
+	// records whether it ran.
+	ran := filepath.Join(t.TempDir(), "ran")
+	write(t, path("template/scripts/docs-lint.sh"), "#!/bin/sh\ntouch "+ran+"\nexit 1\n")
+	if err := os.Chmod(path("template/scripts/docs-lint.sh"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write(t, path("template/docs/page.md"), "# Page\n")
+	if code, out := hook("docs-lint.sh", `{"tool_input": {"file_path": "`+path("template/docs/page.md")+`"}}`); code != 0 {
+		t.Errorf("edit hook on a nested template page: exit %d, want 0:\n%s", code, out)
+	}
+	if _, err := os.Stat(ran); err == nil {
+		t.Error("the nested directory's script ran")
+	}
+
+	// Another repository with the documentation system isn't checked.
+	other, otherPath := sampleRepo(t)
+	install(t, other)
+	if out, err := exec.Command("git", "-C", other, "init", "-q").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	write(t, otherPath("docs/untyped.md"), "# Untyped\n")
+	if code, out := hook("docs-lint.sh", `{"tool_input": {"file_path": "`+otherPath("docs/untyped.md")+`"}}`); code != 0 {
+		t.Errorf("edit hook on another repository: exit %d, want 0:\n%s", code, out)
+	}
+}

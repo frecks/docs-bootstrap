@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0",
+  "version": "0.4.1",
   "options": {
     "name": "Docs bootstrap",
     "date": "2026-10-19"
@@ -7,8 +7,8 @@
   "files": {
     ".agents/skills/docs-review/SKILL.md": "f4f05fff15f4704ee341eabe8e0f3fe10c1f6c596d203759b25962eb2eea6778",
     ".agents/skills/docs-write/SKILL.md": "017dcc25916082cb058b75cfc8aa967e5ee6716c5bce706c369e3a8ccc47dade",
-    ".claude/hooks/docs-lint-stop.sh": "46f6d895e794f7298afca9550469c60650af600cda08864f9a2409bf6bbe7102",
-    ".claude/hooks/docs-lint.sh": "77d06e8a5d460980765f48bae5bfa0b9c033c20537668c6c96ba3a29de4c324c",
+    ".claude/hooks/docs-lint-stop.sh": "e0912f9c9f4753c2cfc2bfc245b21325008cf80d4e6808c8de609066b017c351",
+    ".claude/hooks/docs-lint.sh": "69b1b5c08d08a6151c94d07ea2e4373c2c59e6b263f1c8120ea7f8019c1fbba3",
     ".markdownlint-cli2.jsonc": "6f9fa78f8fc8cfa92bd1822f6b33d9cd44dc97533e35896f522ba1cc7fae3712",
     ".markdownlint/package-lock.json": "cfaacdba09ef5e9019d5188808f0a4080c9c9407fe90396833b13be719911484",
     ".markdownlint/package.json": "d9a935c91c40db1e9682527f41303696adf3cf6d0736f0216dab2ac29b965aac",
@@ -18,8 +18,8 @@
     ".vale/styles/DocsBootstrap/Secrets.yml": "5232bced6bfd3d5586e2135c99a0d663048fc64be8454284137c4f250e8b0051",
     ".vale/styles/config/vocabularies/DocsBootstrap/accept.txt": "f43c61f97aa0d133891976d41d5e62b444d25dddb83712bed0d4eda77977a758",
     ".vale/styles/config/vocabularies/DocsBootstrap/reject.txt": "f837eafa9247deb1bf38eefe97f50c8a7e628f4d7b9b986a1b8b5880d3f80a1a",
-    "docs/documentation/check-documentation.md": "f60e28453caa0992504ad6b06d153156b3d74ccdef6fa2bb3c50d40882e2debd",
-    "docs/documentation/why-the-documentation-system-works-this-way.md": "69b7d0c213a7342863f8163ac0d145c30f62cb33510e4811bf3dd9fc9b1f2c97",
+    "docs/documentation/check-documentation.md": "e11952332fd678a29654733f57ec8153d9b06f43e6a209799390ea3ec5e823d2",
+    "docs/documentation/why-the-documentation-system-works-this-way.md": "7a9da315907ea0c939934fdd79196c8c3192916b952f2e4647ebbf0bbe8401e4",
     "docs/standards/README.md": "63028e94370d0862c5a87d08d3bf522226d5779e2bd7c6d652d387d0f6893c28",
     "docs/standards/review-checklist.md": "7700267f42ec06b0576957c6bfbeb0ea2e1809ac901f883d382324ff59a788a4",
     "docs/standards/structure.md": "1d59ba93c937bd2c27c233087ac756d24bbeef3790615bb6cc9422cd7e0b9d84",
@@ -33,7 +33,7 @@
   "seeds": {
     ".vale/styles/config/vocabularies/DocsBootstrap/accept.txt": "f43c61f97aa0d133891976d41d5e62b444d25dddb83712bed0d4eda77977a758",
     "docs/README.md": "19e92ff8bf20cbea704280e47859b4f09964295a2e06c12b938628a9d78b5814",
-    "docs/documentation/check-documentation.md": "f60e28453caa0992504ad6b06d153156b3d74ccdef6fa2bb3c50d40882e2debd",
-    "docs/documentation/why-the-documentation-system-works-this-way.md": "69b7d0c213a7342863f8163ac0d145c30f62cb33510e4811bf3dd9fc9b1f2c97"
+    "docs/documentation/check-documentation.md": "e11952332fd678a29654733f57ec8153d9b06f43e6a209799390ea3ec5e823d2",
+    "docs/documentation/why-the-documentation-system-works-this-way.md": "7a9da315907ea0c939934fdd79196c8c3192916b952f2e4647ebbf0bbe8401e4"
   }
 }

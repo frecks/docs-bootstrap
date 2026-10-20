@@ -9,14 +9,32 @@ set -uo pipefail
 # The hook reads its input with jq; without it, there's nothing to check.
 command -v jq > /dev/null || exit 0
 
-root="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 file="$(jq -r '.tool_input.file_path // empty')"
+[ -f "$file" ] || exit 0
+file="$(realpath -- "$file")" || exit 0
+
+project="$(realpath -- "${CLAUDE_PROJECT_DIR:-$(dirname "${BASH_SOURCE[0]}")/../..}")" || exit 0
+
+# common_dir prints the git directory that a checkout's worktrees share.
+common_dir() {
+  git -C "$1" rev-parse --path-format=absolute --git-common-dir 2> /dev/null
+}
+
+# Check the checkout that holds the edited file, if it's a worktree of this
+# project: $CLAUDE_PROJECT_DIR can name the main checkout while the session
+# works in a worktree. Any other repository, such as one that this one
+# contains, isn't checked.
+root="$project"
+if top="$(git -C "$(dirname "$file")" rev-parse --show-toplevel 2> /dev/null)" &&
+  [ "$(common_dir "$top")" = "$(common_dir "$project")" ]; then
+  root="$top"
+fi
 
 case "$file" in
   "$root"/docs/*.md) ;;
   *) exit 0 ;;
 esac
-[ -f "$file" ] || exit 0
+[ -x "$root/scripts/docs-lint.sh" ] || exit 0
 
 context() {
   jq -n --arg ctx "$1" '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $ctx}}'
