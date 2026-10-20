@@ -2,7 +2,8 @@
 # Check documentation against docs/standards.
 #
 # Usage: scripts/docs-lint.sh [FILE...]
-# With no arguments, checks every Markdown file in docs/.
+# With no arguments, checks every Markdown file in docs/. FILE paths are
+# relative to the current directory.
 #
 # Runs four checks:
 #   1. Placement and type: each page is in an area directory, and declares
@@ -11,9 +12,10 @@
 #   3. Vale: prose style (.vale.ini).
 #   4. markdownlint: Markdown syntax, and relative links that point to files
 #      and headings that exist (.markdownlint-cli2.jsonc).
-# Exits 1 if any check reports an error, and 3 if no check reports an error
-# but a check couldn't run, such as when a tool isn't installed. Vale warnings
-# and suggestions are printed but don't fail the run.
+# Exits 1 if any check reports an error, 2 if a FILE doesn't exist, and 3 if
+# no check reports an error but a check couldn't run, such as when a tool
+# isn't installed. Vale warnings and suggestions are printed but don't fail
+# the run.
 
 set -uo pipefail
 
@@ -21,14 +23,20 @@ MARKDOWNLINT_VERSION=0.23.3
 RELATIVE_LINKS_VERSION=5.1.4
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Resolve FILE arguments from the caller's directory, before moving to root.
+files=()
+for f in "$@"; do
+  if [ ! -f "$f" ]; then
+    echo "$f: no such file." >&2
+    exit 2
+  fi
+  files+=("$(realpath --relative-to="$root" -- "$f")")
+done
+
 cd "$root" || exit 2
 
-if [ "$#" -gt 0 ]; then
-  files=()
-  for f in "$@"; do
-    files+=("$(realpath --relative-to="$root" "$f")")
-  done
-else
+if [ "$#" -eq 0 ]; then
   mapfile -t files < <(find docs -name '*.md' -type f | sort)
 fi
 

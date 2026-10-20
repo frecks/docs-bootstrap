@@ -42,6 +42,7 @@ The items come from [Diátaxis](https://diataxis.fr/), the [Write the Docs guide
 - [ ] Bold is used only for UI elements and definition labels, not for emphasis.
 - [ ] Link text says where the link goes.
 - [ ] Items in a list are parallel in grammar.
+- [ ] A series of three or more items in a sentence has a serial comma, as in "names, paths, and values".
 - [ ] Sentences are short and direct. Any sentence that has to be read twice is rewritten.
 
 ## Severity

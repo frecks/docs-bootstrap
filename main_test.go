@@ -605,3 +605,38 @@ func TestSecretsRuleAllowsPlaceholders(t *testing.T) {
 		}
 	}
 }
+
+func TestLintResolvesFilesFromTheCallersDirectory(t *testing.T) {
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	lint := func(args ...string) (int, string) {
+		cmd := exec.Command(path("scripts/docs-lint.sh"), args...)
+		cmd.Dir = path("docs")
+		cmd.Env = append(os.Environ(), "PATH="+fakeTools(t))
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+	// The fake tools can't run, so a clean page exits 3.
+	if code, out := lint("documentation/check-documentation.md"); code != 3 || !strings.Contains(out, "== Placement and type\nOK") {
+		t.Errorf("relative path: exit %d, want 3:\n%s", code, out)
+	}
+	if code, out := lint("documentation/nope.md"); code != 2 || !strings.Contains(out, "documentation/nope.md: no such file.") {
+		t.Errorf("missing file: exit %d, want 2:\n%s", code, out)
+	}
+}
+
+func TestLintChecksLinksFromTheRepositoryRoot(t *testing.T) {
+	if _, err := exec.LookPath("npx"); err != nil {
+		t.Skip("npx isn't installed, so markdownlint and the link check can't run")
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	write(t, path("docs/x/links.md"), "---\ntype: reference\n---\n\n# Links\n\n- [Index](/docs/README.md)\n- [Missing](/docs/nope.md)\n")
+	out, _ := exec.Command(path("scripts/docs-lint.sh"), path("docs/x/links.md")).CombinedOutput()
+	if !strings.Contains(string(out), `"/docs/nope.md" should exist`) {
+		t.Errorf("missing root-relative link not reported:\n%s", out)
+	}
+	if strings.Contains(string(out), `"/docs/README.md"`) {
+		t.Errorf("valid root-relative link reported:\n%s", out)
+	}
+}

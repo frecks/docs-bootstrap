@@ -11,7 +11,7 @@ Run the documentation checks on a page before you finish a change, so it meets t
 On your workstation, install these tools:
 
 - [Vale](https://vale.sh/docs/install) 3.24.0 or later, on your `PATH`.
-- Node.js with `npx`, which downloads markdownlint and its link rule the first time it runs.
+- Node.js 22 or later, with `npx`, which downloads markdownlint and its link rule the first time it runs.
 - `jq`, for the Claude Code hook.
 
 To install Vale 3.24.0 to `~/.local/bin`, run:

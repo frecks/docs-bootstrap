@@ -9,7 +9,7 @@ Change the documentation system that the installer sets up, such as a style rule
 ## Before you begin
 
 - Go 1.22 or later.
-- Vale, Node.js, and `jq`, to run the lint checks on this repository. See [Check documentation](../documentation/check-documentation.md#before-you-begin).
+- Vale, Node.js 22 or later, and `jq`, to run the lint checks on this repository. See [Check documentation](../documentation/check-documentation.md#before-you-begin).
 
 ## Make the change
 
