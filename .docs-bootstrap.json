@@ -28,7 +28,7 @@
     "docs/standards/templates/how-to.md": "346dc75b599e6d7984efbe0238f1d6c80496d2c3d898b01c89e5abcd73a9ab45",
     "docs/standards/templates/reference.md": "129074449fc37b05bcd47111e66be022e652605246cf1c20b9d7ce80f73c73e0",
     "docs/standards/templates/tutorial.md": "4dbb5c59bb243a4580deac1734999403d3ce7e22f07443954b7f740ba8bc81fc",
-    "scripts/docs-lint.sh": "22f715007089e4f6a4ce64d905c29495d8fc2cc891fee065de4bf76d311df63f"
+    "scripts/docs-lint.sh": "fab556412513d0d8750d1986473207c9a95dd1abd8d2fbd1877ab91adf802440"
   },
   "seeds": {
     ".vale/styles/config/vocabularies/DocsBootstrap/accept.txt": "f43c61f97aa0d133891976d41d5e62b444d25dddb83712bed0d4eda77977a758",

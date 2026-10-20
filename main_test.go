@@ -945,4 +945,19 @@ func TestReferrersCountOnlyErrorsAboutTheEditedPage(t *testing.T) {
 	if _, out := lint("docs/x/my page.md"); !strings.Contains(out, "my%20page.md#section-one") {
 		t.Errorf("broken %%20 link to the edited page not reported:\n%s", out)
 	}
+
+	// A referring page with the same name: only its errors about the edited
+	// page count, not an unrelated one.
+	write(t, path("docs/a/README.md"), "# A\n\n- [B](../b/README.md)\n")
+	write(t, path("docs/b/README.md"), "# B\n\n- [A](../a/README.md)\n\n\n\nText.\n")
+	if _, out := lint("docs/a/README.md"); !strings.Contains(out, "== markdownlint\nOK") {
+		t.Errorf("an unrelated error in a same-named page counted:\n%s", out)
+	}
+
+	// markdownlint percent-encodes non-ASCII names in its messages.
+	write(t, path("docs/a/über (v2).md"), "---\ntype: reference\n---\n\n# Über\n")
+	write(t, path("docs/b/ref.md"), "---\ntype: reference\n---\n\n# Ref\n\n- [Über](<../a/über (v2).md#old-heading>)\n")
+	if _, out := lint("docs/a/über (v2).md"); !strings.Contains(out, "docs/b/ref.md") {
+		t.Errorf("broken link to a non-ASCII name not reported:\n%s", out)
+	}
 }

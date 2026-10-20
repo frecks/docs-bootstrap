@@ -167,7 +167,7 @@ var reportSections = []struct{ key, label string }{
 	{"updated", "Updated"},
 	{"merged", "Merged into"},
 	{"kept", "Not restored"},
-	{"seedKept", "Not updated, because edited here (--replace PATH takes the new version)"},
+	{"seedKept", "Not updated, because they differ from the template (--replace PATH takes the new version)"},
 	{"conflict", "Conflicts, left unchanged"},
 }
 

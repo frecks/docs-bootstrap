@@ -108,14 +108,34 @@ install_markdownlint() {
 }
 
 # referrer_errors reads markdownlint's error lines, and keeps those for a FILE,
-# and those from other pages that mention a FILE's name. A name counts only as
-# a whole name, so x.md doesn't match index.md.
+# and those from other pages whose message mentions a FILE's name. A name
+# counts only as a whole name, so x.md doesn't match index.md. markdownlint
+# percent-encodes links in its messages, so they're decoded first. LC_ALL=C
+# decodes them to bytes, which match UTF-8 names.
 referrer_errors() {
-  FILES="$(printf '%s\n' "${files[@]}")" NAMES="$(printf '%s\n' "${names[@]}")" awk '
+  FILES="$(printf '%s\n' "${files[@]}")" NAMES="$(printf '%s\n' "${names[@]}")" LC_ALL=C awk '
+    function hex(h,   v, i) {
+      v = 0
+      for (i = 1; i <= 2; i++) v = v * 16 + index("0123456789ABCDEF", toupper(substr(h, i, 1))) - 1
+      return v
+    }
+    function decode(s,   out, i, c) {
+      out = ""
+      for (i = 1; i <= length(s); i++) {
+        c = substr(s, i, 1)
+        if (c == "%" && substr(s, i + 1, 2) ~ /^[0-9A-Fa-f][0-9A-Fa-f]$/) {
+          out = out sprintf("%c", hex(substr(s, i + 1, 2)))
+          i += 2
+        } else {
+          out = out c
+        }
+      }
+      return out
+    }
     function mentions(line, name,   p, before) {
       while ((p = index(line, name)) > 0) {
         before = p > 1 ? substr(line, p - 1, 1) : ""
-        if (before !~ /[A-Za-z0-9_.%-]/) return 1
+        if (before !~ /[A-Za-z0-9_.-]/) return 1
         line = substr(line, p + 1)
       }
       return 0
@@ -126,11 +146,15 @@ referrer_errors() {
       m = split(ENVIRON["NAMES"], name, "\n")
     }
     {
+      # Each line is PATH:LINE[:COLUMN] MESSAGE.
       path = $0
-      sub(/:[0-9].*/, "", path)
+      sub(/:[0-9]+(:[0-9]+)? .*/, "", path)
       if (path in own) { print; next }
+      message = substr($0, length(path) + 1)
+      sub(/^:[0-9]+(:[0-9]+)? /, "", message)
+      message = decode(message)
       for (i = 1; i <= m; i++) {
-        if (name[i] != "" && mentions($0, name[i])) { print; next }
+        if (name[i] != "" && mentions(message, name[i])) { print; next }
       }
     }'
 }
