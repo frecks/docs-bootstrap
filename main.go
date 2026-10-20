@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	version      = "0.1.2"
+	version      = "0.2.0"
 	manifestName = ".docs-bootstrap.json"
 	blockBegin   = "<!-- docs-bootstrap:begin -->"
 	blockEnd     = "<!-- docs-bootstrap:end -->"
@@ -42,25 +42,6 @@ const (
 
 //go:embed all:template
 var embedded embed.FS
-
-type profile struct {
-	Noun, Area, ExampleArea, Audience string
-}
-
-var profiles = map[string]profile{
-	"infrastructure": {
-		Noun:        "environment",
-		Area:        "system",
-		ExampleArea: "network",
-		Audience:    "an operator who knows Linux and networking, but doesn't know this {NOUN} or remember why it's set up this way",
-	},
-	"software": {
-		Noun:        "project",
-		Area:        "component",
-		ExampleArea: "api",
-		Audience:    "a developer who knows the languages and tools this {NOUN} uses, but doesn't know this codebase or why it's built this way",
-	},
-}
 
 // Created once, then owned by the repository. Never updated.
 var seed = map[string]bool{
@@ -80,8 +61,6 @@ var merged = map[string]func(*installer, string, string) error{
 var skills = []string{"docs-write", "docs-review"}
 
 var (
-	markerLine  = regexp.MustCompile(`(?m)^[ \t]*(\{\{[#/]\w+\}\})[ \t]*\n`)
-	sectionOpen = regexp.MustCompile(`\{\{#(\w+)\}\}`)
 	placeholder = regexp.MustCompile(`\{\{(\w+)\}\}`)
 	agentsBlock = regexp.MustCompile(`(?s)` + regexp.QuoteMeta(blockBegin) + `.*?` + regexp.QuoteMeta(blockEnd))
 	importsMD   = regexp.MustCompile(`(?m)^@AGENTS\.md\s*$`)
@@ -90,11 +69,8 @@ var (
 	validStyle  = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9]*$`)
 )
 
-// render fills {{VAR}} placeholders and keeps only this profile's {{#p}}…{{/p}} sections.
-func render(text string, vars map[string]string, profile string) (string, error) {
-	// A marker alone on its line takes the line with it.
-	text = markerLine.ReplaceAllString(text, "$1")
-	text = renderSections(text, profile)
+// render fills {{VAR}} placeholders.
+func render(text string, vars map[string]string) (string, error) {
 	var unknown string
 	text = placeholder.ReplaceAllStringFunc(text, func(m string) string {
 		value, ok := vars[m[2:len(m)-2]]
@@ -114,32 +90,6 @@ func render(text string, vars map[string]string, profile string) (string, error)
 		return "", fmt.Errorf("unrendered template marker: %s", string(rest[:min(len(rest), 40)]))
 	}
 	return text, nil
-}
-
-func renderSections(text, profile string) string {
-	var b strings.Builder
-	for {
-		loc := sectionOpen.FindStringSubmatchIndex(text)
-		if loc == nil {
-			break
-		}
-		name := text[loc[2]:loc[3]]
-		end := "{{/" + name + "}}"
-		j := strings.Index(text[loc[1]:], end)
-		if j < 0 {
-			// Unclosed: leave the marker for render to report.
-			b.WriteString(text[:loc[1]])
-			text = text[loc[1]:]
-			continue
-		}
-		b.WriteString(text[:loc[0]])
-		if name == profile {
-			b.WriteString(text[loc[1] : loc[1]+j])
-		}
-		text = text[loc[1]+j+len(end):]
-	}
-	b.WriteString(text)
-	return b.String()
 }
 
 func sha(text string) string {
@@ -175,12 +125,9 @@ func normalizeNewlines(text string) string {
 }
 
 type options struct {
-	Profile  string  `json:"profile"`
-	Name     string  `json:"name"`
-	Audience *string `json:"audience"`
-	Date     string  `json:"date"`
-	Style    string  `json:"style"`
-	Noun     *string `json:"noun"`
+	Name  string `json:"name"`
+	Date  string `json:"date"`
+	Style string `json:"-"` // derived from Name
 }
 
 type manifest struct {
@@ -266,12 +213,12 @@ func newInstaller(target string, opts options, template fs.FS, dryRun, showDiff 
 		in.replace[path.Clean(filepath.ToSlash(p))] = true
 	}
 	var err error
-	in.files, err = loadTemplate(template, in.vars, opts.Profile)
+	in.files, err = loadTemplate(template, in.vars)
 	return in, err
 }
 
 // loadTemplate reads and renders every file in the template.
-func loadTemplate(template fs.FS, vars map[string]string, profile string) ([]templateFile, error) {
+func loadTemplate(template fs.FS, vars map[string]string) ([]templateFile, error) {
 	var files []templateFile
 	err := fs.WalkDir(template, ".", func(name string, d fs.DirEntry, err error) error {
 		if err != nil || !d.Type().IsRegular() {
@@ -282,10 +229,10 @@ func loadTemplate(template fs.FS, vars map[string]string, profile string) ([]tem
 			return err
 		}
 		f := templateFile{template: name, mode: 0o644}
-		if f.rel, err = render(name, vars, profile); err != nil {
+		if f.rel, err = render(name, vars); err != nil {
 			return fmt.Errorf("%s: %w", name, err)
 		}
-		if f.text, err = render(normalizeNewlines(string(raw)), vars, profile); err != nil {
+		if f.text, err = render(normalizeNewlines(string(raw)), vars); err != nil {
 			return fmt.Errorf("%s: %w", name, err)
 		}
 		// Scripts are executable. The embedded template doesn't keep file
@@ -663,28 +610,11 @@ func (in *installer) saveManifest() error {
 }
 
 func variablesFor(opts options) map[string]string {
-	p := profiles[opts.Profile]
-	vars := map[string]string{
-		"PROJECT":      opts.Name,
-		"STYLE":        opts.Style,
-		"NOUN":         noun(opts),
-		"AREA":         p.Area,
-		"EXAMPLE_AREA": p.ExampleArea,
-		"DATE":         opts.Date,
-		"AUDIENCE":     strings.ReplaceAll(p.Audience, "{NOUN}", noun(opts)),
+	return map[string]string{
+		"PROJECT": opts.Name,
+		"STYLE":   opts.Style,
+		"DATE":    opts.Date,
 	}
-	if opts.Audience != nil {
-		vars["AUDIENCE"] = *opts.Audience
-	}
-	return vars
-}
-
-// noun returns the --noun option, or the profile's default.
-func noun(opts options) string {
-	if opts.Noun != nil {
-		return *opts.Noun
-	}
-	return profiles[opts.Profile].Noun
 }
 
 // first returns the first value that isn't empty.
@@ -716,72 +646,30 @@ func styleName(name string) string {
 	return b.String()
 }
 
-// flags holds the command-line options. A nil noun or audience wasn't given.
-type flags struct {
-	profile, name, style string
-	noun, audience       *string
-}
-
 // usageError is an error in the command line.
 type usageError struct{ error }
 
-// resolveOptions combines command-line options with those saved by a previous
-// run. The noun and audience are saved only when they were given, so that
-// they follow the profile otherwise. Giving one as "" goes back to the default.
-func resolveOptions(f flags, target string, saved options) (options, error) {
+// resolveOptions combines the --name option with the options saved by a
+// previous run. The style name comes from the project name.
+func resolveOptions(name, target string, saved options) (options, error) {
 	base := filepath.Base(target)
 	if base == string(filepath.Separator) {
 		base = ""
 	}
 	opts := options{
-		Profile:  first(f.profile, saved.Profile, "software"),
-		Name:     first(f.name, saved.Name, capitalize(strings.TrimSpace(separators.ReplaceAllString(base, " ")))),
-		Date:     first(saved.Date, time.Now().Format("2006-01-02")),
-		Noun:     saved.Noun,
-		Audience: saved.Audience,
-	}
-	if _, ok := profiles[opts.Profile]; !ok {
-		return opts, fmt.Errorf("unknown profile %q in %s", opts.Profile, manifestName)
+		Name: first(name, saved.Name, capitalize(strings.TrimSpace(separators.ReplaceAllString(base, " ")))),
+		Date: first(saved.Date, time.Now().Format("2006-01-02")),
 	}
 	if opts.Name == "" {
 		return opts, usageError{errors.New("TARGET has no directory name; give --name")}
 	}
-	if f.noun != nil {
-		opts.Noun = nonEmpty(*f.noun)
-	}
-	if f.audience != nil {
-		opts.Audience = nonEmpty(*f.audience)
-	}
-	derived := styleName(opts.Name)
-	if !validStyle.MatchString(derived) {
-		// Such as a name that starts with a digit.
-		derived = "House"
-	}
-	opts.Style = first(f.style, saved.Style, derived)
+	opts.Style = styleName(opts.Name)
 	if !validStyle.MatchString(opts.Style) {
-		return opts, usageError{errors.New("--style must be letters and digits, starting with a letter")}
+		// Such as a name that starts with a digit.
+		opts.Style = "House"
 	}
 	return opts, nil
 }
-
-// nonEmpty returns a pointer to s, or nil if s is empty.
-func nonEmpty(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
-}
-
-// optionalString is a flag that records whether it was given.
-type optionalString struct{ value **string }
-
-func (o optionalString) String() string {
-	if o.value == nil || *o.value == nil {
-		return ""
-	}
-	return **o.value
-}
-func (o optionalString) Set(v string) error { *o.value = &v; return nil }
 
 // takesValue reports whether arg is a flag, such as --name, whose value is
 // the next argument.
@@ -811,11 +699,8 @@ TARGET, a new or existing repository. Run it again to upgrade: files you
 haven't edited are updated, and files you have edited are kept and reported.
 
 Options:
-  --profile NAME   rule set: software (default) or infrastructure
-  --name NAME      project name for titles (default: from the directory name)
-  --style NAME     Vale style and vocabulary name (default: from the project name)
-  --noun NOUN      what the docs describe, as in "this NOUN" (default: project or environment)
-  --audience TEXT  who the docs are for, completing "Write for …"
+  --name NAME      project name, used in titles and to name the Vale style
+                   (default: from the directory name)
   --dry-run        show what would change, but don't write
   --diff           print a diff for each conflicting file
   --replace PATH   take the new version of this managed file, replacing local
@@ -828,13 +713,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 	set := flag.NewFlagSet("docs-bootstrap", flag.ContinueOnError)
 	set.SetOutput(stderr)
 	set.Usage = func() {}
-	var f flags
 	var replace stringList
-	set.StringVar(&f.profile, "profile", "", "")
-	set.StringVar(&f.name, "name", "", "")
-	set.StringVar(&f.style, "style", "", "")
-	set.Var(optionalString{&f.noun}, "noun", "")
-	set.Var(optionalString{&f.audience}, "audience", "")
+	name := set.String("name", "", "")
 	dryRun := set.Bool("dry-run", false, "")
 	showDiff := set.Bool("diff", false, "")
 	set.Var(&replace, "replace", "")
@@ -879,9 +759,6 @@ func run(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprint(stderr, usage)
 		return fail(2, "give one TARGET")
 	}
-	if _, ok := profiles[f.profile]; f.profile != "" && !ok {
-		return fail(2, "--profile must be software or infrastructure")
-	}
 
 	var template fs.FS
 	if *templateDir != "" {
@@ -902,7 +779,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return fail(1, "%v", err)
 	}
-	opts, err := resolveOptions(f, target, saved.Options)
+	opts, err := resolveOptions(*name, target, saved.Options)
 	if err != nil {
 		if errors.As(err, new(usageError)) {
 			return fail(2, "%v", err)
@@ -942,7 +819,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if *dryRun {
 		dry = "Dry run: "
 	}
-	fmt.Fprintf(stdout, "%sdocs-bootstrap %s (%s profile, style %s) in %s\n", dry, version, opts.Profile, opts.Style, target)
+	fmt.Fprintf(stdout, "%sdocs-bootstrap %s (style %s) in %s\n", dry, version, opts.Style, target)
 	if err := in.run(); err != nil {
 		return fail(1, "%v", err)
 	}

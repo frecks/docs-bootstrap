@@ -18,10 +18,10 @@ go install .
 Then set up a repository:
 
 ```bash
-docs-bootstrap ../my-repo --profile software
+docs-bootstrap ../my-repo
 ```
 
-Use `--profile infrastructure` for repositories that describe servers and networks. To upgrade later, update `docs-bootstrap` and run the same command again. The installer updates files you haven't edited, and keeps the ones you have.
+The same rules work for code, infrastructure, or both. To upgrade later, update `docs-bootstrap` and run the same command again. The installer updates files you haven't edited, and keeps the ones you have.
 
 See [Install docs-bootstrap](docs/installer/install-docs-bootstrap.md), [Set up a repository](docs/installer/set-up-a-repository.md), and the rest of the [documentation](docs/README.md).
 

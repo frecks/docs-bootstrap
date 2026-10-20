@@ -16,7 +16,7 @@ In this tutorial, you RESULT.
 
 ## STEP_NAME
 
-<!-- Template: One section per step. Every step must work as written, in order. Show the result after each step so the reader knows they're on track. Explain only what's needed to continue, and link to explanation pages for more. Don't offer alternatives. -->
+<!-- Template: One section per step. Every step must work as written, in order. Show the result after each step so the reader knows they're on track. Explain only what's needed to continue, and link to explanation pages for more. Don't offer alternatives. If commands run somewhere other than the reader's own machine, name the host and user first, as in "On `HOST`, as `USER`:". -->
 
 ```bash
 COMMAND

@@ -4,7 +4,7 @@ type: reference
 
 # Options
 
-This page lists the options and profiles of the installer, and how it treats each file it installs. The source of truth is `main.go` and the files in `template/`.
+This page lists the options of the installer, and how it treats each file it installs. The source of truth is `main.go` and the files in `template/`.
 
 ## Command
 
@@ -20,29 +20,17 @@ The command includes a copy of the template from when you installed it. To chang
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `--profile` | `software` | The rule set: `software` or `infrastructure`. See [Profiles](#profiles). |
-| `--name` | The directory name, with hyphens and underscores as spaces and the first letter capitalized | Project name, used in titles such as `NAME documentation`. Required if `TARGET` is a root directory. |
-| `--style` | The words of the project name, each capitalized, without spaces or punctuation, or `House` if that doesn't start with a letter | Name of the local Vale style and vocabulary, such as `AcmeApi`. Letters and digits only. |
-| `--noun` | `project` or `environment`, from the profile | What the docs describe, as in `this NOUN`. |
-| `--audience` | A sentence from the profile | Who the docs are for, completing `Write for …`. |
+| `--name` | The directory name, with hyphens and underscores as spaces and the first letter capitalized | Project name, used in titles such as `NAME documentation`, and to name the Vale style. Required if `TARGET` is a root directory. |
 | `--dry-run` | Off | Prints what would change, without writing. |
 | `--diff` | Off | Prints a diff for each file in conflict, using `git diff`, with your version as `yours/` and the new version as `docs-bootstrap/`. Needs Git. |
 | `--replace PATH` | None | Takes the new version of a managed file, replacing local edits. Repeat it for more files. |
 | `--version` | Off | Prints the version and exits. Doesn't need a `TARGET`. |
 
-The installer saves `--profile`, `--name`, and `--style` in `.docs-bootstrap.json`, and `--noun` and `--audience` only if you give them. A later run uses the saved values, unless you give the option again. Without a saved value, `--noun` and `--audience` follow the profile, so they change if you change the profile. To go back to the default, give an empty value, such as `--audience ""`.
+The installer saves `--name` in `.docs-bootstrap.json`, and a later run uses the saved name unless you give `--name` again.
 
-The installer exits with status 2 when the command line is invalid, such as an unknown option or profile, a missing `TARGET`, a `--style` with other characters, or a `--replace` path that isn't a managed file. It exits with status 1 when any file is in conflict or the install fails. Otherwise, it exits with status 0.
+The local Vale style and vocabulary are named after the project: the words of the name, each capitalized, without spaces or punctuation, such as `AcmeApi` for `Acme api`. If that doesn't start with a letter, the name is `House`. Changing the name later changes the style's directory, `.vale/styles/STYLE/`.
 
-## Profiles
-
-| | `software` | `infrastructure` |
-| --- | --- | --- |
-| Directories group pages by | Component, such as `docs/api/` | System, such as `docs/network/` |
-| Default audience | A developer who knows the languages and tools, but not this codebase | An operator who knows Linux and networking, but not this environment |
-| Real hostnames and addresses rule | No | Yes |
-| Name the host before each command | No | Yes |
-| Facts come from | The code, config files, and a running build | Config files and the running system |
+The installer exits with status 2 when the command line is invalid, such as an unknown option, a missing `TARGET`, or a `--replace` path that isn't a managed file. It exits with status 1 when any file is in conflict or the install fails. Otherwise, it exits with status 0.
 
 ## Files
 
@@ -70,7 +58,7 @@ The installer keeps the line endings of each file it changes, so a file with CRL
 | Key | Contents |
 | --- | --- |
 | `version` | The installer version that last ran. |
-| `options` | The saved options, and the date of the first install. |
+| `options` | The project name, and the date of the first install. |
 | `files` | A SHA-256 hash of each managed file, as last installed. |
 
 ## Related

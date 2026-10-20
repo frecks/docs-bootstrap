@@ -12,21 +12,12 @@ type: how-to
 
 <!-- Template: What must be true first: access, tools, state of the system. Delete this section if nothing is needed. -->
 
-{{#infrastructure}}
-- You have SSH access to `HOST` as `USER`.
-{{/infrastructure}}
-{{#software}}
 - REQUIREMENT
-{{/software}}
 
 ## STEP_GROUP_NAME
 
-<!-- Template: One section per group of steps, or a single "Steps" list for a short task. Each step is one action.{{#infrastructure}} Name the host before commands.{{/infrastructure}} -->
+<!-- Template: One section per group of steps, or a single "Steps" list for a short task. Each step is one action. If commands run somewhere other than the reader's own machine, name the host and user first, as in "On `HOST`, as `USER`:". -->
 
-{{#infrastructure}}
-On `HOST`, as `USER`:
-
-{{/infrastructure}}
 1. ACTION.
 
    ```bash

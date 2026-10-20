@@ -14,7 +14,7 @@ These files define how documentation in this repository is written, structured, 
 ## Foundations
 
 - **Style:** the [Google developer documentation style guide](https://developers.google.com/style), with the changes listed in [style-guide.md](style-guide.md).
-- **Structure:** [Diátaxis](https://diataxis.fr/), which gives each page one of four types: tutorial, how-to guide, reference, or explanation. Pages are grouped by component.
+- **Structure:** [Diátaxis](https://diataxis.fr/), which gives each page one of four types: tutorial, how-to guide, reference, or explanation. Pages are grouped by area.
 - **Practice:** the [Write the Docs guide](https://www.writethedocs.org/guide/), condensed into [review-checklist.md](review-checklist.md).
 
 ## Enforcement
@@ -29,7 +29,7 @@ The script runs five checks, and fails on errors:
 
 | Check | Tool | Configuration |
 | --- | --- | --- |
-| Page is in a component directory, and declares a Diátaxis type | `scripts/docs-lint.sh` | [structure.md](structure.md) |
+| Page is in an area directory, and declares a Diátaxis type | `scripts/docs-lint.sh` | [structure.md](structure.md) |
 | No instructions left from a template | `scripts/docs-lint.sh` | [templates/](templates/) |
 | Relative links point to files that exist | `scripts/check-links.py` | None |
 | Prose style | [Vale](https://vale.sh/) | `.vale.ini`, `.vale/styles/DocsBootstrap/`, and the DocsBootstrap vocabulary |

@@ -1,6 +1,6 @@
 # {{PROJECT}} documentation
 
-Documentation for {{PROJECT}}, grouped by {{AREA}}. Each page has a type: a tutorial teaches, a how-to guide completes a task, a reference page lists facts, and an explanation page gives reasons. To write or review a page, start with the [documentation standards](standards/README.md).
+Documentation for {{PROJECT}}, grouped by area. Each page has a type: a tutorial teaches, a how-to guide completes a task, a reference page lists facts, and an explanation page gives reasons. To write or review a page, start with the [documentation standards](standards/README.md).
 
 ## Documentation
 

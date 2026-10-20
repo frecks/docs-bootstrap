@@ -41,7 +41,7 @@ The first run downloads the pinned Google style for Vale into `.vale/styles/Goog
 
 The script runs five checks, and prints a section for each:
 
-- **Placement and type:** the page is in a {{AREA}} directory, and declares its [Diátaxis type](../standards/structure.md#declare-the-type) in frontmatter.
+- **Placement and type:** the page is in an area directory, and declares its [Diátaxis type](../standards/structure.md#declare-the-type) in frontmatter.
 - **Template instructions:** no `<!-- Template: -->` comments remain from a [template](../standards/templates/).
 - **Links:** each relative link or image points to a file that exists. Anchors in other pages aren't checked.
 - **Vale:** the prose follows the [style guide](../standards/style-guide.md). Each alert names its rule, such as `Google.Passive`.

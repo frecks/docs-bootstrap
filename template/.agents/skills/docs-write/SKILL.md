@@ -13,25 +13,23 @@ The rules live in `docs/standards/`. This skill is the process for applying them
 
 1. **Check what exists.** Read `docs/README.md`, and search `docs/` for pages on the same subject. Update an existing page rather than adding a second one. Link to facts on other pages instead of copying them.
 
-1. **Gather facts from the source.** {{#infrastructure}}Get hostnames, addresses, paths, ports, and commands from config files, the running system, or the user.{{/infrastructure}}{{#software}}Get names, paths, commands, options, and values from the code, config files, a running build, or the user.{{/software}} Don't guess. If a fact can't be confirmed, say in the page what's unknown, and tell the user.
+1. **Gather facts from the source.** Get names, paths, commands, options, values, hostnames, addresses, and ports from the code, config files, a running build or system, or the user. Don't guess. If a fact can't be confirmed, say in the page what's unknown, and tell the user.
 
-1. **Start from the template.** Copy `docs/standards/templates/<type>.md` to `docs/<{{AREA}}>/<name>.md`. The {{AREA}} directory is the one a reader would look in first, as described in `docs/standards/structure.md`. Use a lowercase, hyphenated file name that matches the title. Keep the `type` frontmatter from the template.
+1. **Start from the template.** Copy `docs/standards/templates/<type>.md` to `docs/<area>/<name>.md`. The area directory is the one a reader would look in first, as described in `docs/standards/structure.md`. Use a lowercase, hyphenated file name that matches the title. Keep the `type` frontmatter from the template.
 
 1. **Write.** Follow `docs/standards/style-guide.md`. The points agents miss most often:
-{{#infrastructure}}
-   - Name the host and user before each procedure.
-{{/infrastructure}}
+   - When a command runs somewhere other than the reader's own machine, name the host and user first.
    - Never include a secret. Use an uppercase placeholder, and say where the value is stored.
    - Say why any unusual setting exists.
    - Give each how-to guide and tutorial a way to verify it worked.
    - Delete every `<!-- Template: -->` comment.
 
-1. **Add the page to `docs/README.md`**, in the table for its {{AREA}}, with its type. If the {{AREA}} directory has a `README.md`, add it there too.
+1. **Add the page to `docs/README.md`**, in the table for its area, with its type. If the area directory has a `README.md`, add it there too.
 
 1. **Run the checks.**
 
    ```bash
-   scripts/docs-lint.sh docs/<{{AREA}}>/<name>.md
+   scripts/docs-lint.sh docs/<area>/<name>.md
    ```
 
    Fix every error. Fix warnings unless you've decided they don't apply, and tell the user which ones you kept and why. Fix suggestions, such as `Google.Passive`, when the rewrite is clearer; otherwise leave them.
