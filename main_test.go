@@ -159,7 +159,7 @@ func TestNamesKeepTheirCase(t *testing.T) {
 		{"my-API_server", "My API server", "MyAPIServer"},
 		{"acme2go", "Acme2go", "Acme2go"},
 		{"-x-", "X", "X"},
-		{"2048-game", "2048 game", "House"},
+		{"2048-game", "2048 game", "HouseRules"},
 	}
 	for _, test := range tests {
 		opts, err := resolveOptions("", filepath.Join("/tmp", test.dir), options{})

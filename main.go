@@ -666,7 +666,7 @@ func resolveOptions(name, target string, saved options) (options, error) {
 	opts.Style = styleName(opts.Name)
 	if !validStyle.MatchString(opts.Style) {
 		// Such as a name that starts with a digit.
-		opts.Style = "House"
+		opts.Style = "HouseRules"
 	}
 	return opts, nil
 }
