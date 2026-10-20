@@ -184,7 +184,7 @@ func TestVersion(t *testing.T) {
 
 func TestCommandLineErrorsExitTwo(t *testing.T) {
 	repo, _ := sampleRepo(t)
-	for _, args := range [][]string{{"--replace", "docs/README.md"}, {"--profile", "software"}, {"--bogus"}} {
+	for _, args := range [][]string{{"--replace", ".gitignore"}, {"--profile", "software"}, {"--bogus"}} {
 		if code, _ := install(t, repo, args...); code != 2 {
 			t.Errorf("%v: exit %d, want 2", args, code)
 		}
@@ -453,7 +453,7 @@ func TestDeletedManagedFileStaysDeleted(t *testing.T) {
 
 func TestReplaceRejectsUnmanagedPathsBeforeWriting(t *testing.T) {
 	repo, path := sampleRepo(t)
-	if code, _ := install(t, repo, "--replace", "docs/README.md"); code != 2 {
+	if code, _ := install(t, repo, "--replace", ".gitignore"); code != 2 {
 		t.Errorf("exit %d, want 2", code)
 	}
 	if _, err := os.Stat(path(".vale.ini")); err == nil {
@@ -480,6 +480,128 @@ func TestRender(t *testing.T) {
 	for _, in := range []string{"{{UNKNOWN}}", "{{#software}}a{{/software}}", "{{ PROJECT }}"} {
 		if _, err := render(in, vars); err == nil {
 			t.Errorf("render(%q) didn't fail", in)
+		}
+	}
+}
+
+func TestUneditedSeedIsUpdated(t *testing.T) {
+	template := copyDir(t, "template")
+	repo, path := sampleRepo(t)
+	install(t, repo, "--template-dir", template)
+	why := "docs/documentation/why-the-documentation-system-works-this-way.md"
+	write(t, path("docs/README.md"), "# Ours\n")
+	for _, rel := range []string{why, "docs/README.md"} {
+		full := filepath.Join(template, rel)
+		write(t, full, read(t, full)+"\nUpstream change.\n")
+	}
+
+	// The unedited seed takes the change; the edited one is the repository's,
+	// so it's kept without a conflict.
+	if code, out := install(t, repo, "--template-dir", template); code != 0 || strings.Contains(out, "Conflicts") {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+	if !strings.Contains(read(t, path(why)), "Upstream change.") {
+		t.Error("unedited seed wasn't updated")
+	}
+	if text := read(t, path("docs/README.md")); text != "# Ours\n" {
+		t.Errorf("edited seed changed:\n%s", text)
+	}
+	if code, out := install(t, repo, "--template-dir", template); code != 0 || !strings.Contains(out, "Already up to date.") {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+}
+
+func TestSeedFromBeforeInstallIsKeptUntilReplaced(t *testing.T) {
+	repo, path := sampleRepo(t)
+	why := "docs/documentation/why-the-documentation-system-works-this-way.md"
+	write(t, path(why), "# Old\n")
+	if code, out := install(t, repo); code != 0 || strings.Contains(out, "Conflicts") {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+	if text := read(t, path(why)); text != "# Old\n" {
+		t.Errorf("existing seed changed:\n%s", text)
+	}
+	if code, out := install(t, repo, "--replace", why); code != 0 {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+	if text := read(t, path(why)); text == "# Old\n" {
+		t.Error("--replace didn't take the new version of the seed")
+	}
+}
+
+// fakeTools returns a PATH where vale is missing and npx fails without
+// running markdownlint, as it does when it can't download a package.
+func fakeTools(t *testing.T) string {
+	t.Helper()
+	bin := t.TempDir()
+	write(t, filepath.Join(bin, "npx"), "#!/bin/sh\necho 'npm error code ENOTCACHED'\nexit 1\n")
+	if err := os.Chmod(filepath.Join(bin, "npx"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return bin + ":/usr/bin:/bin"
+}
+
+func TestLintExitsThreeWhenAToolCantRun(t *testing.T) {
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	env := append(os.Environ(), "PATH="+fakeTools(t))
+	lint := func(page string) (int, string) {
+		cmd := exec.Command(path("scripts/docs-lint.sh"), path(page))
+		cmd.Env = env
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+	if code, out := lint("docs/documentation/check-documentation.md"); code != 3 || strings.Count(out, "SKIPPED") != 2 {
+		t.Errorf("clean page: exit %d, want 3:\n%s", code, out)
+	}
+	write(t, path("docs/x/untyped.md"), "# Untyped\n")
+	if code, out := lint("docs/x/untyped.md"); code != 1 {
+		t.Errorf("page with an error: exit %d, want 1:\n%s", code, out)
+	}
+}
+
+func TestHookDoesNotBlockWhenAToolCantRun(t *testing.T) {
+	if _, err := exec.LookPath("jq"); err != nil {
+		t.Skip("jq isn't installed")
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	hook := func(page string) (int, string) {
+		cmd := exec.Command(path(".claude/hooks/docs-lint.sh"))
+		cmd.Env = append(os.Environ(), "PATH="+fakeTools(t), "CLAUDE_PROJECT_DIR="+repo)
+		cmd.Stdin = strings.NewReader(`{"tool_input": {"file_path": "` + path(page) + `"}}`)
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+	if code, out := hook("docs/documentation/check-documentation.md"); code != 0 || !strings.Contains(out, "couldn't run") {
+		t.Errorf("clean page: exit %d, want 0 with context:\n%s", code, out)
+	}
+	write(t, path("docs/x/untyped.md"), "# Untyped\n")
+	if code, out := hook("docs/x/untyped.md"); code != 2 {
+		t.Errorf("page with an error: exit %d, want 2:\n%s", code, out)
+	}
+}
+
+func TestSecretsRuleAllowsPlaceholders(t *testing.T) {
+	if _, err := exec.LookPath("vale"); err != nil {
+		t.Skip("vale isn't installed")
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	// Only the installed style, so the test doesn't need vale sync.
+	write(t, path("secrets.ini"), "StylesPath = .vale/styles\n\n[*.md]\nBasedOnStyles = SampleRepo\n")
+	write(t, path("page.md"), "# Secrets\n\n```yaml\npassword: YOUR_PASSWORD\ntoken: API_TOKEN\npassword: hunter2hunter2\napi_key = Secr3tValue1\n```\n")
+	cmd := exec.Command("vale", "--config=secrets.ini", "--output=line", "page.md")
+	cmd.Dir = repo
+	out, _ := cmd.CombinedOutput()
+	for _, line := range []string{"page.md:4:", "page.md:5:"} {
+		if strings.Contains(string(out), line) {
+			t.Errorf("placeholder flagged as a secret:\n%s", out)
+		}
+	}
+	for _, line := range []string{"page.md:6:", "page.md:7:"} {
+		if !strings.Contains(string(out), line) {
+			t.Errorf("secret on %s not flagged:\n%s", line, out)
 		}
 	}
 }

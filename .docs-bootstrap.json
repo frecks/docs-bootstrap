@@ -1,19 +1,22 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "options": {
     "name": "Docs bootstrap",
     "date": "2026-10-19"
   },
   "files": {
-    ".agents/skills/docs-review/SKILL.md": "0fd1179049a1e7f418dbcee47676b5abf8b661ff1c5b4f2c7d89cbc206a2fc2c",
+    ".agents/skills/docs-review/SKILL.md": "f4f05fff15f4704ee341eabe8e0f3fe10c1f6c596d203759b25962eb2eea6778",
     ".agents/skills/docs-write/SKILL.md": "1c3f0e3431df7a1ec60671dd0b3c7e6db9cb6458a95879f7ee2a000ce52f0d54",
-    ".claude/hooks/docs-lint.sh": "12c450d753dc1f220ae33ee14b89fa1ec761181009343f0b33430f52d2d8826f",
+    ".claude/hooks/docs-lint.sh": "c85e3cc0e448da825612bebf475b3dc4b9878e0972946c703853d228e994da01",
     ".markdownlint-cli2.jsonc": "71deaf4fdce911bec44d44355da76c271dc9c2934a5df66cfbb4af577d3e27ff",
     ".vale.ini": "6f1cb18c0e66c81cd32b1a261c0b4c24fc83688533e3340bf340bab37ddb79c2",
     ".vale/styles/DocsBootstrap/DraftMarkers.yml": "b0c66a21b76b54bcd2d51f1d56af4c31539d4c7fd1c51a6a6ee48b582d2195c0",
     ".vale/styles/DocsBootstrap/Minimizing.yml": "e31a3bd4c6a7a02ee0106d8f04cbfb2d95235e65f46ab09a8cc3851314d2b2a3",
-    ".vale/styles/DocsBootstrap/Secrets.yml": "8e8e1ae4bf26c5ab8152da9fb4412a8166159014ae849db22ff8835ddeda2917",
+    ".vale/styles/DocsBootstrap/Secrets.yml": "5232bced6bfd3d5586e2135c99a0d663048fc64be8454284137c4f250e8b0051",
+    ".vale/styles/config/vocabularies/DocsBootstrap/accept.txt": "f43c61f97aa0d133891976d41d5e62b444d25dddb83712bed0d4eda77977a758",
     ".vale/styles/config/vocabularies/DocsBootstrap/reject.txt": "f837eafa9247deb1bf38eefe97f50c8a7e628f4d7b9b986a1b8b5880d3f80a1a",
+    "docs/documentation/check-documentation.md": "bff1edc556546acdc6ed9a4eb637cc58d69f173c68421fd0ec99fe128d0237d2",
+    "docs/documentation/why-the-documentation-system-works-this-way.md": "3b5627d18788427d64cb6d9bd6a9d1eb4706328ab5f8393a839be5b053cbb472",
     "docs/standards/README.md": "49b2cc105074ea424cac1572b3cc9afd9f003553d230a337ed4fade3e930d03d",
     "docs/standards/review-checklist.md": "87c72e2c27fbf62702a13def4372b368e18a959ddaabe84f96b7b17996b713e4",
     "docs/standards/structure.md": "11ba188cadd9284bf31f7b357d58e970d200ff2c1cd085de116372cc9fbcb280",
@@ -22,6 +25,6 @@
     "docs/standards/templates/how-to.md": "346dc75b599e6d7984efbe0238f1d6c80496d2c3d898b01c89e5abcd73a9ab45",
     "docs/standards/templates/reference.md": "129074449fc37b05bcd47111e66be022e652605246cf1c20b9d7ce80f73c73e0",
     "docs/standards/templates/tutorial.md": "4dbb5c59bb243a4580deac1734999403d3ce7e22f07443954b7f740ba8bc81fc",
-    "scripts/docs-lint.sh": "42f583c71abf7e5cbc03e2287dd07fda2b57c14d08dda4cf82c8ecc4bf265571"
+    "scripts/docs-lint.sh": "b124000245dd2cf615f68643a8a077da4e50c9a6d6d7285c00a1c454be728d80"
   }
 }

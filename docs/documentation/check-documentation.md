@@ -47,6 +47,8 @@ The script runs four checks, and prints a section for each:
 
 Fix every error. Fix warnings and suggestions unless you've decided they don't apply.
 
+If a check prints `SKIPPED`, its tool isn't installed, or couldn't run, such as when `npx` can't download markdownlint. Install the tool or fix the network problem, then run the script again. When no check reports an error but a check was skipped, the script exits with status 3.
+
 ## Verify
 
 Run the script again. A clean run ends with this output, and the script exits with status 0:

@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	version      = "0.3.0"
+	version      = "0.4.0"
 	manifestName = ".docs-bootstrap.json"
 	blockBegin   = "<!-- docs-bootstrap:begin -->"
 	blockEnd     = "<!-- docs-bootstrap:end -->"
@@ -43,7 +43,7 @@ const (
 //go:embed all:template
 var embedded embed.FS
 
-// Created once, then owned by the repository. Never updated.
+// Created once, then owned by the repository. Updated only while unedited.
 var seed = map[string]bool{
 	"docs/README.md": true,
 	"docs/documentation/check-documentation.md":                         true,
@@ -299,24 +299,48 @@ func (in *installer) run() error {
 	return in.saveManifest()
 }
 
-func (in *installer) managedPaths() map[string]bool {
+// replaceablePaths lists the managed and seed files, which --replace accepts.
+func (in *installer) replaceablePaths() map[string]bool {
 	paths := map[string]bool{}
 	for _, f := range in.files {
-		if !seed[f.template] && merged[f.template] == nil {
+		if merged[f.template] == nil {
 			paths[f.rel] = true
 		}
 	}
 	return paths
 }
 
+// seed creates a file that the repository owns from then on. An upgrade
+// updates it only while it matches the version the installer last wrote, so a
+// repository that hasn't edited it still gets fixes.
 func (in *installer) seed(rel, text string, mode fs.FileMode) error {
-	if _, err := os.Stat(in.path(rel)); err == nil {
-		return nil
-	} else if !errors.Is(err, fs.ErrNotExist) {
+	current, exists, err := in.read(rel)
+	if err != nil {
 		return err
 	}
-	in.add("created", rel)
-	return in.write(rel, text, mode)
+	newHash := sha(text)
+	oldHash, installed := in.oldHashes[rel]
+	switch {
+	case in.replace[rel]:
+		in.newHashes[rel] = newHash
+		if !exists || current != text {
+			in.add("updated", rel+" (replaced)")
+			return in.write(rel, text, mode)
+		}
+	case !exists:
+		in.newHashes[rel] = newHash
+		in.add("created", rel)
+		return in.write(rel, text, mode)
+	case current == text:
+		in.newHashes[rel] = newHash
+	case installed && oldHash == sha(current):
+		in.newHashes[rel] = newHash
+		in.add("updated", rel)
+		return in.write(rel, text, mode)
+	}
+	// Edited here, or present before the install: the repository owns it, so
+	// the installer stops tracking it.
+	return nil
 }
 
 func (in *installer) managed(rel, text string, mode fs.FileMode) error {
@@ -702,8 +726,8 @@ Options:
                    (default: from the directory name)
   --dry-run        show what would change, but don't write
   --diff           print a diff for each conflicting file
-  --replace PATH   take the new version of this managed file, replacing local
-                   edits (repeatable)
+  --replace PATH   take the new version of this managed or seed file,
+                   replacing local edits (repeatable)
   --version        print the version and exit
 `
 
@@ -794,16 +818,16 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return fail(1, "%v", err)
 	}
-	managed := in.managedPaths()
+	replaceable := in.replaceablePaths()
 	var unknown []string
 	for p := range in.replace {
-		if !managed[p] {
+		if !replaceable[p] {
 			unknown = append(unknown, p)
 		}
 	}
 	if len(unknown) > 0 {
 		sort.Strings(unknown)
-		return fail(2, "--replace takes a managed file, such as docs/standards/style-guide.md: %s", strings.Join(unknown, ", "))
+		return fail(2, "--replace takes a managed or seed file, such as docs/standards/style-guide.md: %s", strings.Join(unknown, ", "))
 	}
 
 	// Create the target only once the command line is known to be valid.

@@ -17,7 +17,7 @@ Linters handle what can be checked mechanically. Your job is what they can't che
    scripts/docs-lint.sh <file>...
    ```
 
-   If a check prints `SKIPPED`, its tool isn't installed or isn't on `PATH`. The script exits non-zero for that reason, not because of the page. Report which checks were skipped. The page can't be **Ready** until they run.
+   If a check prints `SKIPPED`, its tool isn't installed, isn't on `PATH`, or couldn't run. The script exits with status 3 for that reason, unless another check found an error in the page. Report which checks were skipped. The page can't be **Ready** until they run.
 
 1. **Read the standards:** `docs/standards/structure.md`, `docs/standards/style-guide.md`, and `docs/standards/review-checklist.md`.
 

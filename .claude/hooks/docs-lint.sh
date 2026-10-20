@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # PostToolUse hook: check a Markdown file in docs/ after Claude edits it.
 # Errors are sent back to Claude with exit code 2 so it fixes them.
-# Warnings and suggestions are passed along as context without blocking.
+# Warnings, suggestions, and checks that couldn't run are passed along as
+# context without blocking.
 
 set -uo pipefail
 
@@ -18,18 +19,22 @@ context() {
   jq -n --arg ctx "$1" '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $ctx}}'
 }
 
-if ! command -v vale > /dev/null; then
-  context "Documentation checks skipped: Vale isn't installed. Tell the user; see docs/documentation/check-documentation.md."
-  exit 0
-fi
-
-if out="$("$root/scripts/docs-lint.sh" "$file" 2>&1)"; then
-  if grep -q -E ' (warning|suggestion) ' <<< "$out"; then
-    context "scripts/docs-lint.sh passed with alerts. Fix them unless they don't apply:
+out="$("$root/scripts/docs-lint.sh" "$file" 2>&1)"
+case $? in
+  0)
+    if grep -q -E ' (warning|suggestion) ' <<< "$out"; then
+      context "scripts/docs-lint.sh passed with alerts. Fix them unless they don't apply:
 $out"
-  fi
-  exit 0
-fi
+    fi
+    exit 0
+    ;;
+  3)
+    # A tool is missing or failed, which the page can't fix.
+    context "Some documentation checks couldn't run, so $file wasn't fully checked. Fix any alerts below, and tell the user which checks were skipped; see docs/documentation/check-documentation.md.
+$out"
+    exit 0
+    ;;
+esac
 
 echo "scripts/docs-lint.sh found errors in $file. Fix them, following docs/standards/:
 $out" >&2

@@ -30,9 +30,11 @@ Local edits always win. To take the new version anyway, you name the file with `
 
 When someone deletes a managed file, the installer leaves it deleted. A repository may not want a file, such as the tutorial template, and restoring it on every upgrade would undo that choice.
 
-### The installer creates seed files once
+### Seed files belong to the repository once edited
 
-Files such as `docs/README.md` and the vocabulary's `accept.txt` start from the template, but the repository fills them with its own content right away. Upgrading them would mean merging that content, so the installer creates them once and never changes them again.
+Files such as `docs/README.md` and the vocabulary's `accept.txt` start from the template, but the repository usually fills them with its own content right away. Upgrading them would mean merging that content, so once a repository edits a seed file, the installer leaves it alone, and doesn't report it as a conflict.
+
+Until then, the installer tracks a seed file's hash like a managed file's, and updates it on upgrade. Seed pages such as the explanation of the documentation system are often never edited, and without this they'd keep describing the system as it was at install time. A seed file that existed before the install, or that an older installer created without recording a hash, is treated as edited. To take the new version of one, you name it with `--replace`.
 
 ### The installer merges shared files
 
@@ -53,7 +55,7 @@ The installer saves its options, the project name and the date of the first inst
 
 - A repository can adapt any file and still take updates to the rest.
 - Every local edit shows up as a conflict on each upgrade, until someone takes the new version or the template matches the edit. A repository that changes many files gets a long conflict list.
-- Seed files never get template improvements. Someone must make changes to them by hand in each repository.
+- Edited seed files don't get template improvements. Someone must make those changes by hand, or take the new version with `--replace` and redo the local content.
 
 ## Related
 

@@ -11,8 +11,9 @@
 #   3. Vale: prose style (.vale.ini).
 #   4. markdownlint: Markdown syntax, and relative links that point to files
 #      and headings that exist (.markdownlint-cli2.jsonc).
-# Exits non-zero if any check reports an error. Vale warnings and suggestions
-# are printed but don't fail the run.
+# Exits 1 if any check reports an error, and 3 if no check reports an error
+# but a check couldn't run, such as when a tool isn't installed. Vale warnings
+# and suggestions are printed but don't fail the run.
 
 set -uo pipefail
 
@@ -37,6 +38,7 @@ if [ "${#files[@]}" -eq 0 ]; then
 fi
 
 status=0
+skipped=0
 
 echo "== Placement and type"
 # Pages live in an area directory, such as docs/api/, and declare their
@@ -80,14 +82,23 @@ done
 if [ "$template_ok" -eq 1 ]; then echo "OK"; else echo "Delete the Template comments above."; status=1; fi
 
 echo "== Vale"
-if command -v vale > /dev/null; then
-  if [ ! -d .vale/styles/Google ]; then
-    vale sync > /dev/null || { echo "vale sync failed"; status=1; }
-  fi
-  vale --no-wrap "${files[@]}" || status=1
-else
+if ! command -v vale > /dev/null; then
   echo "SKIPPED: vale is not installed. See docs/documentation/check-documentation.md."
-  status=1
+  skipped=1
+elif [ ! -d .vale/styles/Google ] && ! vale sync > /dev/null; then
+  echo "SKIPPED: vale sync failed, so Vale can't run."
+  skipped=1
+else
+  # Vale exits 1 when it reports errors, and 2 when it can't run.
+  vale --no-wrap "${files[@]}"
+  case $? in
+    0) ;;
+    1) status=1 ;;
+    *)
+      echo "SKIPPED: Vale couldn't run."
+      skipped=1
+      ;;
+  esac
 fi
 
 echo "== markdownlint"
@@ -98,13 +109,25 @@ if command -v npx > /dev/null; then
     --package "markdownlint-rule-relative-links@${RELATIVE_LINKS_VERSION}" \
     markdownlint-cli2 --no-globs "${files[@]/#/:}" 2>&1)"; then
     echo "OK"
-  else
+  elif grep -q '^Summary:' <<< "$out"; then
     grep -v -E '^(markdownlint-cli2 v|Finding:|Linting:|Summary:)' <<< "$out"
     status=1
+  else
+    # No summary means markdownlint didn't run, such as when npx can't
+    # download it.
+    echo "$out"
+    echo "SKIPPED: markdownlint couldn't run."
+    skipped=1
   fi
 else
   echo "SKIPPED: npx is not installed, so markdownlint can't run."
-  status=1
+  skipped=1
 fi
 
-exit "$status"
+if [ "$status" -ne 0 ]; then
+  exit 1
+fi
+if [ "$skipped" -ne 0 ]; then
+  exit 3
+fi
+exit 0
