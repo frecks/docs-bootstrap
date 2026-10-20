@@ -10,7 +10,7 @@ Install the documentation system into a new or existing repository. The reposito
 
 - The `docs-bootstrap` command. See [Install docs-bootstrap](install-docs-bootstrap.md).
 - A clean working tree in the target repository, if it already exists, so you can review the changes with `git diff`.
-- The tools the checks need, which are listed in [Check documentation](../documentation/check-documentation.md#before-you-begin).
+- The tools the checks need. See [Check documentation](../documentation/check-documentation.md#before-you-begin).
 
 ## Install
 

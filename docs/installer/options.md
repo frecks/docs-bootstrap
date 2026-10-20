@@ -28,7 +28,7 @@ The command includes a copy of the template from when you installed it. To chang
 
 The installer saves `--name` in `.docs-bootstrap.json`, and a later run uses the saved name unless you give `--name` again.
 
-The local Vale style and vocabulary are named after the project: the words of the name, each capitalized, without spaces or punctuation, such as `AcmeApi` for `Acme api`. If that doesn't start with a letter, the name is `HouseRules`. Changing the name later changes the style's directory, `.vale/styles/STYLE/`.
+The installer names the local Vale style and vocabulary after the project: the words of the name, each capitalized, without spaces or punctuation, such as `AcmeApi` for `Acme api`. If that doesn't start with a letter, the name is `HouseRules`. Changing the name later changes the style's directory, `.vale/styles/STYLE/`.
 
 The installer exits with status 2 when the command line is invalid, such as an unknown option, a missing `TARGET`, or a `--replace` path that isn't a managed file. It exits with status 1 when any file is in conflict or the install fails. Otherwise, it exits with status 0.
 
