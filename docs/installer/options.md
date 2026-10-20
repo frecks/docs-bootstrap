@@ -26,7 +26,7 @@ The installer includes a copy of the template when you build it. To run it from 
 | `--noun` | `project` or `environment`, from the profile | What the docs describe, as in `this NOUN`. |
 | `--audience` | A sentence from the profile | Who the docs are for, completing `Write for …`. |
 | `--dry-run` | Off | Prints what would change, without writing. |
-| `--diff` | Off | Prints a diff for each file in conflict. |
+| `--diff` | Off | Prints a diff for each file in conflict, using `git diff`, with your version as `yours/` and the new version as `docs-bootstrap/`. Needs Git. |
 | `--replace PATH` | None | Takes the new version of a managed file, replacing local edits. Repeat it for more files. |
 
 The installer saves `--profile`, `--name`, and `--style` in `.docs-bootstrap.json`, and `--noun` and `--audience` only if you give them. A later run uses the saved values, unless you give the option again. Without a saved value, `--noun` and `--audience` follow the profile, so they change if you change the profile. To go back to the default, give an empty value, such as `--audience ""`.

@@ -8,7 +8,7 @@ Install the documentation system into a new or existing repository. The reposito
 
 ## Before you begin
 
-- Go 1.22 or later, to run the installer.
+- Go 1.22 or later, to run the installer, and Git, for `--diff`.
 - A clean working tree in the target repository, if it already exists, so you can review the changes with `git diff`.
 - The tools the checks need, which are listed in [Check documentation](../documentation/check-documentation.md#before-you-begin).
 

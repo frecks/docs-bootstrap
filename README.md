@@ -19,5 +19,5 @@ See [Set up a repository](docs/installer/set-up-a-repository.md), and the rest o
 
 ## Requirements
 
-- Go 1.22 or later, to run the installer.
+- Go 1.22 or later, to run the installer, and Git, for `--diff`.
 - Python 3, Vale, Node.js, and `jq`, in the repositories you set up.

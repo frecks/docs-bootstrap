@@ -319,7 +319,7 @@ func TestExistingConfigIsAConflict(t *testing.T) {
 	if code != 1 || !strings.Contains(out, "Conflicts") {
 		t.Errorf("exit %d:\n%s", code, out)
 	}
-	if !strings.Contains(out, "--- .vale.ini (yours)\n+++ .vale.ini (docs-bootstrap)\n@@ -1 +1,") {
+	if !strings.Contains(out, "--- yours/.vale.ini\n+++ docs-bootstrap/.vale.ini\n@@ -1 +1,") {
 		t.Errorf("missing diff in:\n%s", out)
 	}
 	if text := read(t, path(".vale.ini")); text != "StylesPath = styles\n" {
@@ -426,23 +426,5 @@ func TestRender(t *testing.T) {
 		if _, err := render(in, vars, "software"); err == nil {
 			t.Errorf("render(%q) didn't fail", in)
 		}
-	}
-}
-
-func TestUnifiedDiff(t *testing.T) {
-	a := "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
-	b := "1\nTWO\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n"
-	want := "--- a\n+++ b\n" +
-		"@@ -1,5 +1,5 @@\n 1\n-2\n+TWO\n 3\n 4\n 5\n" +
-		"@@ -10,3 +10,4 @@\n 10\n 11\n 12\n+13\n"
-	if got := unifiedDiff(a, b, "a", "b"); got != want {
-		t.Errorf("got:\n%s\nwant:\n%s", got, want)
-	}
-	want = "--- a\n+++ b\n@@ -1,2 +1,2 @@\n x\n-y\n\\ No newline at end of file\n+y\n"
-	if got := unifiedDiff("x\ny", "x\ny\n", "a", "b"); got != want {
-		t.Errorf("got:\n%s\nwant:\n%s", got, want)
-	}
-	if got := unifiedDiff(a, a, "a", "b"); got != "" {
-		t.Errorf("same text gave a diff:\n%s", got)
 	}
 }

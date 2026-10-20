@@ -23,6 +23,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -204,28 +205,33 @@ var reportKeys = []string{"created", "updated", "merged", "kept", "conflict"}
 type installer struct {
 	target    string
 	options   options
-	template  fs.FS
+	files     []templateFile
 	dryRun    bool
 	showDiff  bool
 	replace   map[string]bool
 	vars      map[string]string
-	profile   string
 	oldHashes map[string]string
 	newHashes map[string]string
 	report    map[string][]string
 	out       io.Writer
 }
 
-func newInstaller(target string, opts options, template fs.FS, dryRun, showDiff bool, replace []string, oldHashes map[string]string, out io.Writer) *installer {
+// templateFile is a file in the template, rendered for this repository.
+type templateFile struct {
+	template string // path in the template
+	rel      string // path in the repository
+	text     string
+	mode     fs.FileMode
+}
+
+func newInstaller(target string, opts options, template fs.FS, dryRun, showDiff bool, replace []string, oldHashes map[string]string, out io.Writer) (*installer, error) {
 	in := &installer{
 		target:    target,
 		options:   opts,
-		template:  template,
 		dryRun:    dryRun,
 		showDiff:  showDiff,
 		replace:   map[string]bool{},
 		vars:      variablesFor(opts),
-		profile:   opts.Profile,
 		oldHashes: oldHashes,
 		newHashes: map[string]string{},
 		report:    map[string][]string{},
@@ -238,7 +244,38 @@ func newInstaller(target string, opts options, template fs.FS, dryRun, showDiff 
 		// Template paths always use slashes.
 		in.replace[path.Clean(filepath.ToSlash(p))] = true
 	}
-	return in
+	var err error
+	in.files, err = loadTemplate(template, in.vars, opts.Profile)
+	return in, err
+}
+
+// loadTemplate reads and renders every file in the template.
+func loadTemplate(template fs.FS, vars map[string]string, profile string) ([]templateFile, error) {
+	var files []templateFile
+	err := fs.WalkDir(template, ".", func(name string, d fs.DirEntry, err error) error {
+		if err != nil || !d.Type().IsRegular() {
+			return err
+		}
+		raw, err := fs.ReadFile(template, name)
+		if err != nil {
+			return err
+		}
+		f := templateFile{template: name, mode: 0o644}
+		if f.rel, err = render(name, vars, profile); err != nil {
+			return fmt.Errorf("%s: %w", name, err)
+		}
+		if f.text, err = render(normalizeNewlines(string(raw)), vars, profile); err != nil {
+			return fmt.Errorf("%s: %w", name, err)
+		}
+		// Scripts are executable. The embedded template doesn't keep file
+		// modes, so tell them by their #! line.
+		if strings.HasPrefix(string(raw), "#!") {
+			f.mode = 0o755
+		}
+		files = append(files, f)
+		return nil
+	})
+	return files, err
 }
 
 func (in *installer) path(rel string) string {
@@ -268,35 +305,14 @@ func (in *installer) write(rel, text string, mode fs.FileMode) error {
 }
 
 func (in *installer) run() error {
-	files, err := in.templateFiles()
-	if err != nil {
-		return err
-	}
-	for _, relTemplate := range files {
-		rel, err := render(relTemplate, in.vars, in.profile)
-		if err != nil {
-			return fmt.Errorf("%s: %w", relTemplate, err)
-		}
-		raw, err := fs.ReadFile(in.template, relTemplate)
-		if err != nil {
-			return err
-		}
-		text, err := render(normalizeNewlines(string(raw)), in.vars, in.profile)
-		if err != nil {
-			return fmt.Errorf("%s: %w", relTemplate, err)
-		}
-		// Scripts are executable. The embedded template doesn't keep file
-		// modes, so tell them by their #! line.
-		mode := fs.FileMode(0o644)
-		if strings.HasPrefix(string(raw), "#!") {
-			mode = 0o755
-		}
-		if merge, ok := merged[relTemplate]; ok {
-			err = merge(in, rel, text)
-		} else if seed[relTemplate] {
-			err = in.seed(rel, text, mode)
+	for _, f := range in.files {
+		var err error
+		if merge, ok := merged[f.template]; ok {
+			err = merge(in, f.rel, f.text)
+		} else if seed[f.template] {
+			err = in.seed(f.rel, f.text, f.mode)
 		} else {
-			err = in.managed(rel, text, mode)
+			err = in.managed(f.rel, f.text, f.mode)
 		}
 		if err != nil {
 			return err
@@ -313,34 +329,14 @@ func (in *installer) run() error {
 	return in.saveManifest()
 }
 
-func (in *installer) managedPaths() (map[string]bool, error) {
-	files, err := in.templateFiles()
-	if err != nil {
-		return nil, err
-	}
+func (in *installer) managedPaths() map[string]bool {
 	paths := map[string]bool{}
-	for _, rel := range files {
-		if seed[rel] || merged[rel] != nil {
-			continue
+	for _, f := range in.files {
+		if !seed[f.template] && merged[f.template] == nil {
+			paths[f.rel] = true
 		}
-		rendered, err := render(rel, in.vars, in.profile)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", rel, err)
-		}
-		paths[rendered] = true
 	}
-	return paths, nil
-}
-
-func (in *installer) templateFiles() ([]string, error) {
-	var files []string
-	err := fs.WalkDir(in.template, ".", func(path string, d fs.DirEntry, err error) error {
-		if err == nil && d.Type().IsRegular() {
-			files = append(files, path)
-		}
-		return err
-	})
-	return files, err
+	return paths
 }
 
 func (in *installer) seed(rel, text string, mode fs.FileMode) error {
@@ -396,8 +392,40 @@ func (in *installer) managed(rel, text string, mode fs.FileMode) error {
 	}
 	in.add("conflict", rel)
 	if in.showDiff {
-		_, err := io.WriteString(in.out, "\n"+unifiedDiff(current, text, rel+" (yours)", rel+" (docs-bootstrap)"))
+		return in.diff(rel, text)
+	}
+	return nil
+}
+
+// diff prints the changes from the repository's version of rel to text.
+func (in *installer) diff(rel, text string) error {
+	current, err := os.ReadFile(in.path(rel))
+	if err != nil {
 		return err
+	}
+	dir, err := os.MkdirTemp("", "docs-bootstrap-diff-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+	// Copies under these names make the diff headers say which is which.
+	yours, ours := filepath.Join("yours", rel), filepath.Join("docs-bootstrap", rel)
+	for name, data := range map[string][]byte{yours: current, ours: []byte(text)} {
+		full := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(full), 0o777); err != nil {
+			return err
+		}
+		if err := os.WriteFile(full, data, 0o666); err != nil {
+			return err
+		}
+	}
+	fmt.Fprintln(in.out)
+	cmd := exec.Command("git", "--no-pager", "diff", "--no-index", "--no-ext-diff", "--no-prefix", "--", yours, ours)
+	cmd.Dir = dir
+	cmd.Stdout, cmd.Stderr = in.out, in.out
+	// git diff exits with status 1 when the files differ.
+	if err := cmd.Run(); err != nil && !(errors.As(err, new(*exec.ExitError)) && cmd.ProcessState.ExitCode() == 1) {
+		return fmt.Errorf("git diff %s: %w", rel, err)
 	}
 	return nil
 }
@@ -799,11 +827,16 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 		return fail(1, "%v", err)
 	}
-	in := newInstaller(target, opts, template, *dryRun, *showDiff, replace, saved.Files, stdout)
-	managed, err := in.managedPaths()
+	if *showDiff {
+		if _, err := exec.LookPath("git"); err != nil {
+			return fail(1, "--diff needs git, which isn't on PATH")
+		}
+	}
+	in, err := newInstaller(target, opts, template, *dryRun, *showDiff, replace, saved.Files, stdout)
 	if err != nil {
 		return fail(1, "%v", err)
 	}
+	managed := in.managedPaths()
 	var unknown []string
 	for p := range in.replace {
 		if !managed[p] {
