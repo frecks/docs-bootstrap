@@ -44,6 +44,10 @@ install_vale_styles() {
   local stamp="$styles/.docs-lint-packages"
   local packages
   packages="$(grep -E '^Packages[[:space:]]*=' .vale.ini)"
+  # A run that stopped during a sync can leave only the backup.
+  if [ ! -d "$styles" ] && [ -d "$styles.old" ]; then
+    mv "$styles.old" "$styles"
+  fi
   if [ -d "$styles" ] && [ "$(cat "$stamp" 2> /dev/null)" = "$packages" ]; then
     return 0
   fi
@@ -71,7 +75,8 @@ install_vale_styles() {
 # .markdownlint/package-lock.json, when they're missing or the lockfile has
 # changed since they were installed. npm ci checks each package against its
 # integrity hash, and --ignore-scripts runs no package code while installing.
-# It prints SKIPPED and returns 1 when markdownlint can't run.
+# A failed install keeps the packages that were there. It prints SKIPPED and
+# returns 1 when markdownlint can't run.
 install_markdownlint() {
   local stamp=.markdownlint/node_modules/.docs-lint-lock
   if [ -x "$markdownlint" ] && cmp -s .markdownlint/package-lock.json "$stamp"; then
@@ -81,13 +86,53 @@ install_markdownlint() {
     echo "SKIPPED: npm is not installed, so markdownlint can't be installed. See docs/documentation/check-documentation.md."
     return 1
   fi
-  local out
-  if ! out="$(npm ci --prefix .markdownlint --ignore-scripts --no-audit --no-fund --loglevel=error 2>&1)"; then
+  # Install next to the current packages, and swap them in once npm ci works.
+  local next=.markdownlint/.next out
+  rm -rf "$next"
+  mkdir -p "$next"
+  cp .markdownlint/package.json .markdownlint/package-lock.json "$next/"
+  if ! out="$(npm ci --prefix "$next" --ignore-scripts --no-audit --no-fund --loglevel=error 2>&1)"; then
+    rm -rf "$next"
     echo "$out"
+    if [ -x "$markdownlint" ]; then
+      echo "npm ci failed, so markdownlint is using the packages from before the lockfile changed."
+      return 0
+    fi
     echo "SKIPPED: npm ci failed, so markdownlint can't run."
     return 1
   fi
+  rm -rf .markdownlint/node_modules
+  mv "$next/node_modules" .markdownlint/node_modules
+  rm -rf "$next"
   cp .markdownlint/package-lock.json "$stamp"
+}
+
+# referrer_errors reads markdownlint's error lines, and keeps those for a FILE,
+# and those from other pages that mention a FILE's name. A name counts only as
+# a whole name, so x.md doesn't match index.md.
+referrer_errors() {
+  FILES="$(printf '%s\n' "${files[@]}")" NAMES="$(printf '%s\n' "${names[@]}")" awk '
+    function mentions(line, name,   p, before) {
+      while ((p = index(line, name)) > 0) {
+        before = p > 1 ? substr(line, p - 1, 1) : ""
+        if (before !~ /[A-Za-z0-9_.%-]/) return 1
+        line = substr(line, p + 1)
+      }
+      return 0
+    }
+    BEGIN {
+      n = split(ENVIRON["FILES"], f, "\n")
+      for (i = 1; i <= n; i++) own[f[i]] = 1
+      m = split(ENVIRON["NAMES"], name, "\n")
+    }
+    {
+      path = $0
+      sub(/:[0-9].*/, "", path)
+      if (path in own) { print; next }
+      for (i = 1; i <= m; i++) {
+        if (name[i] != "" && mentions($0, name[i])) { print; next }
+      }
+    }'
 }
 
 if [ "${1:-}" = "--install" ]; then
@@ -125,13 +170,17 @@ if [ "${#files[@]}" -eq 0 ]; then
   exit 0
 fi
 
-# markdownlint also checks the links in pages that mention a FILE by name.
+# markdownlint also checks the links in pages that mention a FILE by name, as
+# it is or with spaces encoded as %20.
 lint_files=("${files[@]}")
+names=()
 if [ "$with_referrers" -eq 1 ]; then
   for f in "${files[@]}"; do
+    name="$(basename "$f")"
+    names+=("$name" "${name// /%20}")
     while IFS= read -r ref; do
       lint_files+=("$ref")
-    done < <(grep -rlF --include='*.md' -- "$(basename "$f")" docs | grep -vxF -- "$f")
+    done < <(grep -rlF --include='*.md' -e "$name" -e "${name// /%20}" docs | grep -vxF -- "$f")
   done
   mapfile -t lint_files < <(printf '%s\n' "${lint_files[@]}" | sort -u)
 fi
@@ -154,12 +203,15 @@ for f in "${files[@]}"; do
       ;;
     *) continue ;;
   esac
-  # Allow CRLF line endings, and a quoted value, as in type: "how-to".
+  # Allow a byte order mark, CRLF line endings, a quoted value, as in
+  # type: "how-to", and a comment after the value.
   type="$(awk -v quotes="[\"']" '
+    NR == 1 { sub(/^\357\273\277/, "") }
     { sub(/\r$/, "") }
     NR == 1 && $0 != "---" { exit }
     NR > 1 && $0 == "---" { exit }
     NR > 1 && sub(/^type:[[:space:]]*/, "") {
+      sub(/[[:space:]]+#.*$/, "")
       sub(/[[:space:]]+$/, "")
       gsub("^" quotes "|" quotes "$", "")
       print
@@ -214,8 +266,18 @@ if ! install_markdownlint; then
 elif out="$("$markdownlint" --no-globs "${lint_files[@]/#/:}" 2>&1)"; then
   echo "OK"
 elif grep -q '^Summary:' <<< "$out"; then
-  grep -v -E '^(markdownlint-cli2 v|Finding:|Linting:|Summary:)' <<< "$out"
-  status=1
+  errors="$(grep -v -E '^(markdownlint-cli2 v|Finding:|Linting:|Summary:)' <<< "$out")"
+  # In pages that link to a FILE, only errors about the FILE count, so an
+  # unrelated error there doesn't block an edit to the FILE.
+  if [ "$with_referrers" -eq 1 ]; then
+    errors="$(referrer_errors <<< "$errors")"
+  fi
+  if [ -n "$errors" ]; then
+    echo "$errors"
+    status=1
+  else
+    echo "OK"
+  fi
 else
   # No summary means markdownlint didn't run.
   echo "$out"

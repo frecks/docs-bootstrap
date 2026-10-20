@@ -6,6 +6,9 @@
 
 set -uo pipefail
 
+# The hook reads its input with jq; without it, there's nothing to check.
+command -v jq > /dev/null || exit 0
+
 root="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 file="$(jq -r '.tool_input.file_path // empty')"
 
@@ -19,7 +22,10 @@ context() {
   jq -n --arg ctx "$1" '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $ctx}}'
 }
 
-out="$("$root/scripts/docs-lint.sh" --with-referrers "$file" 2>&1)"
+# An edited script kept as a conflict may predate --with-referrers.
+args=(--with-referrers)
+grep -q -e '--with-referrers' "$root/scripts/docs-lint.sh" || args=()
+out="$("$root/scripts/docs-lint.sh" "${args[@]}" "$file" 2>&1)"
 case $? in
   0)
     if grep -q -E ' (warning|suggestion) ' <<< "$out"; then
@@ -36,6 +42,6 @@ $out"
     ;;
 esac
 
-echo "scripts/docs-lint.sh found errors in $file. Fix them, following docs/standards/:
+echo "scripts/docs-lint.sh found errors in $file, or in links to it from other pages. Fix them, following docs/standards/:
 $out" >&2
 exit 2

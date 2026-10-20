@@ -75,7 +75,7 @@ Two hooks in `.claude/settings.json` run the script for agents in Claude Code:
 - **After each edit:** a `PostToolUse` hook checks a Markdown file in `docs/` after each `Edit`, `MultiEdit`, or `Write`. It also runs markdownlint on the pages that mention the file's name, so a link that the edit broke elsewhere, such as an anchor to a renamed heading, is caught too. Checking only those pages keeps each edit fast however large `docs/` grows.
 - **Before the agent finishes:** a `Stop` hook checks every page in `docs/`, if any page there has uncommitted changes. This catches what the edit hook can't see, such as a page that a command moved or deleted. It blocks the agent once, so it fixes the errors, and then lets it finish.
 
-Errors go back to the agent to fix before it moves on. Warnings and suggestions go to the agent as context, without blocking. If a check can't run, such as when Vale isn't installed or npm can't download markdownlint, the hooks ask the agent to tell the user, and don't block. The hooks catch problems while the agent is still working, instead of in review.
+Errors go back to the agent to fix before it moves on. Warnings and suggestions go to the agent as context, without blocking. If a check can't run, such as when Vale isn't installed or npm can't download markdownlint, the edit hook asks the agent to tell the user, the Stop hook shows the user a message, and neither blocks. The hooks catch problems while the agent is still working, instead of in review.
 
 ### A bootstrap tool installs and upgrades the system
 

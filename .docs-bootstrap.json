@@ -6,9 +6,9 @@
   },
   "files": {
     ".agents/skills/docs-review/SKILL.md": "f4f05fff15f4704ee341eabe8e0f3fe10c1f6c596d203759b25962eb2eea6778",
-    ".agents/skills/docs-write/SKILL.md": "486775bf864a3ec4abf27daebf79892266762134a13d628d9a1c5f859188373f",
-    ".claude/hooks/docs-lint-stop.sh": "59db3b8c39ee9e22ad36722283920f008e494b762ae306d372a74cda358a9841",
-    ".claude/hooks/docs-lint.sh": "bd13017ef749095c10dcbe7612055036d889d1552f1a490b3917da0a5b1658af",
+    ".agents/skills/docs-write/SKILL.md": "017dcc25916082cb058b75cfc8aa967e5ee6716c5bce706c369e3a8ccc47dade",
+    ".claude/hooks/docs-lint-stop.sh": "46f6d895e794f7298afca9550469c60650af600cda08864f9a2409bf6bbe7102",
+    ".claude/hooks/docs-lint.sh": "77d06e8a5d460980765f48bae5bfa0b9c033c20537668c6c96ba3a29de4c324c",
     ".markdownlint-cli2.jsonc": "6f9fa78f8fc8cfa92bd1822f6b33d9cd44dc97533e35896f522ba1cc7fae3712",
     ".markdownlint/package-lock.json": "cfaacdba09ef5e9019d5188808f0a4080c9c9407fe90396833b13be719911484",
     ".markdownlint/package.json": "d9a935c91c40db1e9682527f41303696adf3cf6d0736f0216dab2ac29b965aac",
@@ -18,9 +18,9 @@
     ".vale/styles/DocsBootstrap/Secrets.yml": "5232bced6bfd3d5586e2135c99a0d663048fc64be8454284137c4f250e8b0051",
     ".vale/styles/config/vocabularies/DocsBootstrap/accept.txt": "f43c61f97aa0d133891976d41d5e62b444d25dddb83712bed0d4eda77977a758",
     ".vale/styles/config/vocabularies/DocsBootstrap/reject.txt": "f837eafa9247deb1bf38eefe97f50c8a7e628f4d7b9b986a1b8b5880d3f80a1a",
-    "docs/documentation/check-documentation.md": "95524984704581ad80fdbbd647679e5e7865f6510a3fb3218cd9c0d863acd1f8",
-    "docs/documentation/why-the-documentation-system-works-this-way.md": "fe1f2a94a43197973c613d92ce967623187f2242cf75e9f6f58c01e8724a60a6",
-    "docs/standards/README.md": "65be03100786ee3b816dfb1ec5c815f648eb96b9d4676822641efd73f73460d7",
+    "docs/documentation/check-documentation.md": "f60e28453caa0992504ad6b06d153156b3d74ccdef6fa2bb3c50d40882e2debd",
+    "docs/documentation/why-the-documentation-system-works-this-way.md": "69b7d0c213a7342863f8163ac0d145c30f62cb33510e4811bf3dd9fc9b1f2c97",
+    "docs/standards/README.md": "63028e94370d0862c5a87d08d3bf522226d5779e2bd7c6d652d387d0f6893c28",
     "docs/standards/review-checklist.md": "7700267f42ec06b0576957c6bfbeb0ea2e1809ac901f883d382324ff59a788a4",
     "docs/standards/structure.md": "1d59ba93c937bd2c27c233087ac756d24bbeef3790615bb6cc9422cd7e0b9d84",
     "docs/standards/style-guide.md": "5c5e3bcfad6be669cbc1c47b21000afd08220ec7dfb01c4f069cbe0eafa0b3f9",
@@ -28,6 +28,12 @@
     "docs/standards/templates/how-to.md": "346dc75b599e6d7984efbe0238f1d6c80496d2c3d898b01c89e5abcd73a9ab45",
     "docs/standards/templates/reference.md": "129074449fc37b05bcd47111e66be022e652605246cf1c20b9d7ce80f73c73e0",
     "docs/standards/templates/tutorial.md": "4dbb5c59bb243a4580deac1734999403d3ce7e22f07443954b7f740ba8bc81fc",
-    "scripts/docs-lint.sh": "425cca5e17e6cdd8902165661372e585a59d0034478cd6e4c01fdb922d5acf64"
+    "scripts/docs-lint.sh": "22f715007089e4f6a4ce64d905c29495d8fc2cc891fee065de4bf76d311df63f"
+  },
+  "seeds": {
+    ".vale/styles/config/vocabularies/DocsBootstrap/accept.txt": "f43c61f97aa0d133891976d41d5e62b444d25dddb83712bed0d4eda77977a758",
+    "docs/README.md": "19e92ff8bf20cbea704280e47859b4f09964295a2e06c12b938628a9d78b5814",
+    "docs/documentation/check-documentation.md": "f60e28453caa0992504ad6b06d153156b3d74ccdef6fa2bb3c50d40882e2debd",
+    "docs/documentation/why-the-documentation-system-works-this-way.md": "69b7d0c213a7342863f8163ac0d145c30f62cb33510e4811bf3dd9fc9b1f2c97"
   }
 }

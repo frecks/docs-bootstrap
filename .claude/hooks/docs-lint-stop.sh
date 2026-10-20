@@ -6,6 +6,10 @@
 
 set -uo pipefail
 
+# Without jq, the hook can't tell a second stop from the first, so it could
+# block every stop. Skip the check instead.
+command -v jq > /dev/null || exit 0
+
 root="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 input="$(cat)"
 
@@ -22,10 +26,15 @@ if git -C "$root" rev-parse --is-inside-work-tree > /dev/null 2>&1 &&
 fi
 
 out="$("$root/scripts/docs-lint.sh" 2>&1)"
-if [ $? -ne 1 ]; then
-  # Clean, or a check couldn't run, which the edit hook already reported.
-  exit 0
-fi
+case $? in
+  1) ;;
+  3)
+    # A tool is missing or failed: tell the user, without blocking.
+    jq -n '{systemMessage: "Some documentation checks couldn'"'"'t run before Claude finished. Run scripts/docs-lint.sh to see which, and see docs/documentation/check-documentation.md."}'
+    exit 0
+    ;;
+  *) exit 0 ;;
+esac
 
 echo "scripts/docs-lint.sh found errors in docs/. Fix them before you finish, following docs/standards/:
 $out" >&2

@@ -133,6 +133,9 @@ type manifest struct {
 	Version string            `json:"version"`
 	Options options           `json:"options"`
 	Files   map[string]string `json:"files"`
+	// Seeds has a hash of the template's version of each seed file, as last
+	// offered, so an edited seed is reported only when the template changes.
+	Seeds map[string]string `json:"seeds,omitempty"`
 }
 
 func readManifest(target string) (manifest, error) {
@@ -164,6 +167,7 @@ var reportSections = []struct{ key, label string }{
 	{"updated", "Updated"},
 	{"merged", "Merged into"},
 	{"kept", "Not restored"},
+	{"seedKept", "Not updated, because edited here (--replace PATH takes the new version)"},
 	{"conflict", "Conflicts, left unchanged"},
 }
 
@@ -177,6 +181,8 @@ type installer struct {
 	vars      map[string]string
 	oldHashes map[string]string
 	newHashes map[string]string
+	oldSeeds  map[string]string
+	newSeeds  map[string]string
 	crlf      map[string]bool // files read with CRLF line endings
 	report    map[string][]string
 	out       io.Writer
@@ -200,6 +206,7 @@ func newInstaller(target string, opts options, template fs.FS, dryRun, showDiff 
 		vars:      variablesFor(opts),
 		oldHashes: oldHashes,
 		newHashes: map[string]string{},
+		newSeeds:  map[string]string{},
 		crlf:      map[string]bool{},
 		report:    map[string][]string{},
 		out:       out,
@@ -320,6 +327,7 @@ func (in *installer) seed(rel, text string, mode fs.FileMode) error {
 	}
 	newHash := sha(text)
 	oldHash, installed := in.oldHashes[rel]
+	in.newSeeds[rel] = newHash
 	switch {
 	case in.replace[rel]:
 		in.newHashes[rel] = newHash
@@ -339,7 +347,11 @@ func (in *installer) seed(rel, text string, mode fs.FileMode) error {
 		return in.write(rel, text, mode)
 	}
 	// Edited here, or present before the install: the repository owns it, so
-	// the installer stops tracking it.
+	// the installer stops tracking it. Say so once for each new template
+	// version, so it can be updated by hand or taken with --replace.
+	if exists && current != text && in.oldSeeds[rel] != newHash {
+		in.add("seedKept", rel)
+	}
 	return nil
 }
 
@@ -592,7 +604,14 @@ func (in *installer) mergeSettings(rel, text string) error {
 // scripts/docs-lint.sh, so the first check doesn't have to. A failure isn't
 // fatal: the script tries again when it next runs.
 func installTools(target string, stdout io.Writer) {
-	cmd := exec.Command(filepath.Join(target, "scripts", "docs-lint.sh"), "--install")
+	script := filepath.Join(target, "scripts", "docs-lint.sh")
+	// An edited script kept as a conflict may predate --install.
+	if data, err := os.ReadFile(script); err != nil || !strings.Contains(string(data), `"--install"`) {
+		fmt.Fprint(stdout, "\nThe lint tools aren't installed, because scripts/docs-lint.sh doesn't support --install. "+
+			"To take the new version of the script, run again with --replace scripts/docs-lint.sh.\n")
+		return
+	}
+	cmd := exec.Command(script, "--install")
 	cmd.Dir = target
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -661,7 +680,7 @@ func (in *installer) symlink(rel, target string) error {
 }
 
 func (in *installer) saveManifest() error {
-	out, err := marshal(manifest{Version: version, Options: in.options, Files: in.newHashes})
+	out, err := marshal(manifest{Version: version, Options: in.options, Files: in.newHashes, Seeds: in.newSeeds})
 	if err != nil {
 		return err
 	}
@@ -858,6 +877,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return fail(1, "%v", err)
 	}
+	in.oldSeeds = saved.Seeds
 	replaceable := in.replaceablePaths()
 	var unknown []string
 	for p := range in.replace {
@@ -895,7 +915,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 			}
 		}
 	}
-	if len(report["created"])+len(report["updated"])+len(report["merged"])+len(report["conflict"]) == 0 {
+	if len(report["created"])+len(report["updated"])+len(report["merged"])+len(report["conflict"])+len(report["seedKept"]) == 0 {
 		fmt.Fprint(stdout, "\nAlready up to date.\n")
 	}
 	if len(report["conflict"]) > 0 {

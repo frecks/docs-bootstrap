@@ -4,7 +4,7 @@ type: how-to
 
 # Check documentation
 
-Run the documentation checks on a page before you finish a change, so it meets the [documentation standards](../standards/README.md). Agents in Claude Code run these checks automatically after each edit.
+Run the documentation checks on a page before you finish a change, so it meets the [documentation standards](../standards/README.md). In Claude Code, hooks run these checks after each edit to a page in `docs/`, and on every page before the agent finishes if `docs/` has uncommitted changes.
 
 ## Before you begin
 
@@ -22,7 +22,7 @@ curl -sL https://github.com/errata-ai/vale/releases/download/v3.24.0/vale_3.24.0
 
 ## Check pages
 
-From the repository root, run:
+From the repository root, run the script with the page's path. A path is relative to the directory you run the script in:
 
 ```bash
 scripts/docs-lint.sh docs/documentation/check-documentation.md
@@ -43,11 +43,11 @@ The script runs four checks, and prints a section for each:
 - **Placement and type:** the page is in an area directory, and declares its [Diátaxis type](../standards/structure.md#declare-the-type) in frontmatter.
 - **Template instructions:** no `<!-- Template: -->` comments remain from a [template](../standards/templates/).
 - **Vale:** the prose follows the [style guide](../standards/style-guide.md). Each alert names its rule, such as `Google.Passive`.
-- **markdownlint:** the Markdown syntax follows `.markdownlint-cli2.jsonc`, and each relative link or image points to a file that exists. An anchor, such as `style-guide.md#dates`, must match a heading in that file.
+- **markdownlint:** the Markdown syntax follows `.markdownlint-cli2.jsonc`, and each relative link or image points to a file that exists. An anchor, such as `style-guide.md#dates`, must match a heading in that file. A link that starts with `/` is checked from the repository root.
 
 Fix every error. Fix warnings and suggestions unless you've decided they don't apply.
 
-If a check prints `SKIPPED`, its tool isn't installed, or couldn't run, such as when `npm` can't download markdownlint. Install the tool or fix the network problem, then run the script again. When no check reports an error but a check was skipped, the script exits with status 3.
+If a check prints `SKIPPED`, its tool isn't installed, or couldn't run, such as when `npm` can't download markdownlint. Install the tool or fix the network problem, then run the script again. The script exits with status 1 when a check reports an error, 2 when a page you named doesn't exist, and 3 when no check reports an error but a check was skipped.
 
 ## Verify
 

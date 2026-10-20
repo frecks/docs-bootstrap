@@ -122,9 +122,7 @@ func TestFreshInstallRendersEveryFile(t *testing.T) {
 }
 
 func TestInstallPassesItsOwnStructureChecks(t *testing.T) {
-	if _, err := exec.LookPath("npm"); err != nil {
-		t.Skip("npm isn't installed, so markdownlint and the link check can't run")
-	}
+	requireRegistry(t)
 	repo, path := sampleRepo(t)
 	install(t, repo)
 	out, _ := exec.Command(path("scripts/docs-lint.sh")).Output()
@@ -635,9 +633,7 @@ func TestLintResolvesFilesFromTheCallersDirectory(t *testing.T) {
 }
 
 func TestLintChecksLinksFromTheRepositoryRoot(t *testing.T) {
-	if _, err := exec.LookPath("npm"); err != nil {
-		t.Skip("npm isn't installed, so markdownlint and the link check can't run")
-	}
+	requireRegistry(t)
 	repo, path := sampleRepo(t)
 	install(t, repo)
 	write(t, path("docs/x/links.md"), "---\ntype: reference\n---\n\n# Links\n\n- [Index](/docs/README.md)\n- [Missing](/docs/nope.md)\n")
@@ -651,10 +647,9 @@ func TestLintChecksLinksFromTheRepositoryRoot(t *testing.T) {
 }
 
 func TestEditHookChecksPagesThatLinkToTheEditedPage(t *testing.T) {
-	for _, tool := range []string{"npm", "jq"} {
-		if _, err := exec.LookPath(tool); err != nil {
-			t.Skip(tool + " isn't installed")
-		}
+	requireRegistry(t)
+	if _, err := exec.LookPath("jq"); err != nil {
+		t.Skip("jq isn't installed")
 	}
 	repo, path := sampleRepo(t)
 	install(t, repo)
@@ -709,9 +704,7 @@ func TestStopHook(t *testing.T) {
 }
 
 func TestInstallInstallsLockedLintTools(t *testing.T) {
-	if _, err := exec.LookPath("npm"); err != nil {
-		t.Skip("npm isn't installed")
-	}
+	requireRegistry(t)
 	repo, path := sampleRepo(t)
 	var out bytes.Buffer
 	if code := run([]string{repo}, &out, &out); code != 0 {
@@ -732,11 +725,12 @@ func TestInstallInstallsLockedLintTools(t *testing.T) {
 		t.Errorf("exit %d, want markdownlint to run without npm:\n%s", code, out)
 	}
 
-	// A changed lockfile, as after an upgrade, means installing again.
+	// A changed lockfile, as after an upgrade, means installing again. When
+	// that fails, the packages that were there keep working.
 	lock := path(".markdownlint/package-lock.json")
 	write(t, lock, read(t, lock)+"\n")
-	if code, out := lint(); code != 3 || !strings.Contains(out, "npm ci failed") {
-		t.Errorf("exit %d, want 3 after trying npm ci again:\n%s", code, out)
+	if code, out := lint(); !strings.Contains(out, "using the packages from before the lockfile changed.\nOK") {
+		t.Errorf("exit %d, want markdownlint to keep working after npm ci fails:\n%s", code, out)
 	}
 }
 
@@ -745,7 +739,8 @@ func TestTypeMayBeQuotedOrUseCRLF(t *testing.T) {
 	install(t, repo)
 	write(t, path("docs/x/quoted.md"), "---\ntype: \"how-to\"\n---\n\n# Quoted\n")
 	write(t, path("docs/x/crlf.md"), "---\r\ntype: 'reference'\r\n---\r\n\r\n# CRLF\r\n")
-	cmd := exec.Command(path("scripts/docs-lint.sh"), path("docs/x/quoted.md"), path("docs/x/crlf.md"))
+	write(t, path("docs/x/bom.md"), "\ufeff---\ntype: how-to # a comment\n---\n\n# BOM\n")
+	cmd := exec.Command(path("scripts/docs-lint.sh"), path("docs/x/quoted.md"), path("docs/x/crlf.md"), path("docs/x/bom.md"))
 	cmd.Env = append(os.Environ(), "PATH="+fakeTools(t))
 	out, _ := cmd.CombinedOutput()
 	if !strings.Contains(string(out), "== Placement and type\nOK") {
@@ -801,5 +796,153 @@ exit 0
 	}
 	if text := read(t, path(".vale/styles/Google/rule.yml")); text != "synced\n" {
 		t.Errorf("styles lost after a failed sync: %q", text)
+	}
+
+	// A run that stopped mid-sync leaves only the backup, which is restored.
+	if err := os.Rename(path(".vale/styles/Google"), path(".vale/styles/Google.old")); err != nil {
+		t.Fatal(err)
+	}
+	install("1")
+	if text := read(t, path(".vale/styles/Google/rule.yml")); text != "synced\n" {
+		t.Errorf("backup not restored: %q", text)
+	}
+}
+
+// requireRegistry skips a test that installs packages when the npm registry
+// can't be reached, such as offline.
+func requireRegistry(t *testing.T) {
+	t.Helper()
+	if _, err := exec.LookPath("npm"); err != nil {
+		t.Skip("npm isn't installed")
+	}
+	if err := exec.Command("npm", "ping", "--fetch-timeout=5000", "--fetch-retries=0").Run(); err != nil {
+		t.Skip("the npm registry can't be reached")
+	}
+}
+
+func TestUpgradeFromBeforeSeedTrackingReportsStaleSeeds(t *testing.T) {
+	template := copyDir(t, "template")
+	repo, path := sampleRepo(t)
+	install(t, repo, "--template-dir", template)
+	// Manifests from before seed tracking have no seed hashes.
+	manifest := readJSON(t, path(".docs-bootstrap.json"))
+	files := manifest["files"].(map[string]any)
+	for rel := range manifest["seeds"].(map[string]any) {
+		delete(files, rel)
+	}
+	delete(manifest, "seeds")
+	data, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	write(t, path(".docs-bootstrap.json"), string(data))
+
+	why := "docs/documentation/why-the-documentation-system-works-this-way.md"
+	full := filepath.Join(template, why)
+	write(t, full, read(t, full)+"\nUpstream change.\n")
+	code, out := install(t, repo, "--template-dir", template)
+	if code != 0 || !strings.Contains(out, "Not updated") || !strings.Contains(out, why) {
+		t.Errorf("stale seed not reported: exit %d:\n%s", code, out)
+	}
+	// It's reported once for each template version, not on every run.
+	if code, out := install(t, repo, "--template-dir", template); code != 0 || strings.Contains(out, "Not updated") {
+		t.Errorf("stale seed reported again: exit %d:\n%s", code, out)
+	}
+}
+
+// oldScript replaces scripts/docs-lint.sh with a stand-in for an edited copy
+// from before --install and --with-referrers, which records its arguments.
+func oldScript(t *testing.T, path func(string) string) string {
+	t.Helper()
+	argsLog := path("args.log")
+	write(t, path("scripts/docs-lint.sh"), "#!/bin/sh\necho \"$@\" >> "+argsLog+"\nexit 0\n")
+	if err := os.Chmod(path("scripts/docs-lint.sh"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return argsLog
+}
+
+func TestOlderLintScriptKeepsHooksAndInstallerWorking(t *testing.T) {
+	if _, err := exec.LookPath("jq"); err != nil {
+		t.Skip("jq isn't installed")
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	argsLog := oldScript(t, path)
+
+	var out bytes.Buffer
+	run([]string{repo}, &out, &out)
+	if !strings.Contains(out.String(), "doesn't support --install") {
+		t.Errorf("installer didn't explain the skipped tools:\n%s", out.String())
+	}
+
+	page := path("docs/documentation/check-documentation.md")
+	cmd := exec.Command(path(".claude/hooks/docs-lint.sh"))
+	cmd.Env = append(os.Environ(), "CLAUDE_PROJECT_DIR="+repo)
+	cmd.Stdin = strings.NewReader(`{"tool_input": {"file_path": "` + page + `"}}`)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Errorf("edit hook failed: %v\n%s", err, out)
+	}
+	if args := read(t, argsLog); strings.Contains(args, "--") {
+		t.Errorf("an option was passed to the older script: %q", args)
+	}
+}
+
+func TestStopHookSkipsWithoutJq(t *testing.T) {
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("bash isn't installed")
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	write(t, path("docs/untyped.md"), "# Untyped\n")
+	// The fake tools' PATH, with every command in it except jq.
+	bin := t.TempDir()
+	for _, dir := range strings.Split(fakeTools(t), ":") {
+		entries, _ := os.ReadDir(dir)
+		for _, e := range entries {
+			if e.Name() == "jq" {
+				continue
+			}
+			_ = os.Symlink(filepath.Join(dir, e.Name()), filepath.Join(bin, e.Name()))
+		}
+	}
+	if _, err := os.Stat(filepath.Join(bin, "bash")); err != nil {
+		t.Skip("bash isn't in " + filepath.Dir(bash))
+	}
+	cmd := exec.Command(path(".claude/hooks/docs-lint-stop.sh"))
+	cmd.Env = append(os.Environ(), "PATH="+bin, "CLAUDE_PROJECT_DIR="+repo)
+	cmd.Stdin = strings.NewReader(`{"stop_hook_active": true}`)
+	out, _ := cmd.CombinedOutput()
+	if code := cmd.ProcessState.ExitCode(); code != 0 {
+		t.Errorf("exit %d without jq, want 0:\n%s", code, out)
+	}
+}
+
+func TestReferrersCountOnlyErrorsAboutTheEditedPage(t *testing.T) {
+	requireRegistry(t)
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	write(t, path("docs/x/README.md"), "# X\n")
+	write(t, path("docs/x/x.md"), "---\ntype: reference\n---\n\n# X page\n\n## Section one\n")
+	write(t, path("docs/x/my page.md"), "---\ntype: reference\n---\n\n# My page\n\n## Renamed\n")
+	// An unrelated page that mentions README.md and index.md, with an old
+	// broken link of its own.
+	write(t, path("docs/y/other.md"), "---\ntype: reference\n---\n\n# Other\n\n- [Index](../x/README.md)\n- [Index page](index.md)\n- [Missing](missing.md)\n")
+	// A page that links to the edited page with %20 for the space.
+	write(t, path("docs/y/linker.md"), "---\ntype: reference\n---\n\n# Linker\n\n- [Mine](../x/my%20page.md#section-one)\n")
+	lint := func(page string) (int, string) {
+		cmd := exec.Command(path("scripts/docs-lint.sh"), "--with-referrers", path(page))
+		cmd.Env = append(os.Environ(), "PATH="+os.Getenv("PATH"))
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+	for _, page := range []string{"docs/x/README.md", "docs/x/x.md"} {
+		if _, out := lint(page); strings.Contains(out, "missing.md") || !strings.Contains(out, "== markdownlint\nOK") {
+			t.Errorf("%s: an unrelated error in another page counted:\n%s", page, out)
+		}
+	}
+	if _, out := lint("docs/x/my page.md"); !strings.Contains(out, "my%20page.md#section-one") {
+		t.Errorf("broken %%20 link to the edited page not reported:\n%s", out)
 	}
 }

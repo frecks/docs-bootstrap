@@ -22,7 +22,7 @@ The command includes a copy of the template from when you installed it. To chang
 | --- | --- | --- |
 | `--name` | The directory name, with hyphens and underscores as spaces and the first letter capitalized | Project name, used in titles such as `NAME documentation`, and to name the Vale style. Required if `TARGET` is a root directory. |
 | `--dry-run` | Off | Prints what would change, without writing. |
-| `--skip-tools` | Off | Doesn't install the lint tools: Vale's Google style and the markdownlint packages. Without this option, the installer runs `scripts/docs-lint.sh --install` in the repository after installing. The first lint run installs any tool that's missing. |
+| `--skip-tools` | Off | Doesn't install the lint tools: Vale's Google style and the markdownlint packages. Without this option, the installer runs `scripts/docs-lint.sh --install` in the repository after installing. The first lint run installs any tool that's missing. `--dry-run` also skips the install, and a failed install doesn't change the exit status. |
 | `--diff` | Off | Prints a diff for each file in conflict, using `git diff`, with your version as `yours/` and the new version as `docs-bootstrap/`. Needs Git. |
 | `--replace PATH` | None | Takes the new version of a managed or seed file, replacing local edits. Repeat it for more files. |
 | `--version` | Off | Prints the version and exits. Doesn't need a `TARGET`. |
@@ -40,7 +40,7 @@ The installer treats each file one of three ways. For the reasons, see [Why the 
 | Kind | Files | On first run | On later runs |
 | --- | --- | --- | --- |
 | Managed | Every file in `template/` that isn't listed below | Created, or a conflict if a different file exists | Updated if unedited since the last run, otherwise a conflict |
-| Seed | `docs/README.md`, the pages in `docs/documentation/`, and the vocabulary's `accept.txt` | Created if missing | Updated if unedited since the installer last wrote it, otherwise left alone without a conflict |
+| Seed | `docs/README.md`, the pages in `docs/documentation/`, and the vocabulary's `accept.txt` | Created if missing | Updated if unedited since the installer last wrote it. Otherwise left alone, and listed as not updated once for each new version. Created again if deleted. |
 | Merged | `.gitignore`, `.claude/settings.json`, `AGENTS.md`, `CLAUDE.md`, and the links in `.claude/skills/` | Created, or the needed lines added to the existing file | The needed lines added again if missing |
 
 How each merged file changes:

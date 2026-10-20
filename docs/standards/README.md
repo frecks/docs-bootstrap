@@ -32,9 +32,9 @@ The script runs four checks, and fails on errors:
 | Page is in an area directory, and declares a Diátaxis type | `scripts/docs-lint.sh` | [structure.md](structure.md) |
 | No instructions left from a template | `scripts/docs-lint.sh` | [templates/](templates/) |
 | Prose style | [Vale](https://vale.sh/) | `.vale.ini`, `.vale/styles/DocsBootstrap/`, and the DocsBootstrap vocabulary |
-| Markdown syntax, and relative links that point to files and headings that exist | [markdownlint](https://github.com/DavidAnson/markdownlint) | `.markdownlint-cli2.jsonc` |
+| Markdown syntax, and relative links that point to files and headings that exist, with links that start with `/` checked from the repository root | [markdownlint](https://github.com/DavidAnson/markdownlint) | `.markdownlint-cli2.jsonc` |
 
-In Claude Code, hooks run the same script after every edit to a file in `docs/`, and on all of `docs/` before the agent finishes if any page changed. They send errors back to the agent to fix.
+In Claude Code, hooks run the same script after every edit to a file in `docs/`, and on all of `docs/` before the agent finishes if `docs/` has uncommitted changes. They send errors back to the agent to fix.
 
 Vale doesn't check the files in `docs/standards/`, because they quote bad examples on purpose. markdownlint still checks them.
 

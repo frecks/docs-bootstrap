@@ -6,3 +6,6 @@
 
 # Installed by scripts/docs-lint.sh from .markdownlint/package-lock.json.
 .markdownlint/node_modules/
+
+.vale/styles/Google.old/
+.markdownlint/.next/

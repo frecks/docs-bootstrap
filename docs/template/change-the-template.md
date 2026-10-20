@@ -23,7 +23,11 @@ Change the documentation system that the installer sets up, such as a style rule
    npm install --package-lock-only --ignore-scripts --prefix template/.markdownlint
    ```
 
-   Check that no package in the new lockfile needs an install script, because `scripts/docs-lint.sh` installs with `--ignore-scripts`.
+   Check that no package in the new lockfile needs an install script, because `scripts/docs-lint.sh` installs with `--ignore-scripts`. This command prints `0` when none does:
+
+   ```bash
+   jq '[.packages[] | select(.hasInstallScript)] | length' template/.markdownlint/package-lock.json
+   ```
 
 1. Run the tests:
 
