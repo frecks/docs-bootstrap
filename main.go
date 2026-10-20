@@ -85,7 +85,7 @@ var (
 	agentsBlock = regexp.MustCompile(`(?s)` + regexp.QuoteMeta(blockBegin) + `.*?` + regexp.QuoteMeta(blockEnd))
 	importsMD   = regexp.MustCompile(`(?m)^@AGENTS\.md\s*$`)
 	separators  = regexp.MustCompile(`[-_]+`)
-	notAlnum    = regexp.MustCompile(`[^A-Za-z0-9]`)
+	alnumWords  = regexp.MustCompile(`[A-Za-z0-9]+`)
 	validStyle  = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9]*$`)
 )
 
@@ -167,7 +167,7 @@ type options struct {
 	Audience *string `json:"audience"`
 	Date     string  `json:"date"`
 	Style    string  `json:"style"`
-	Noun     string  `json:"noun"`
+	Noun     *string `json:"noun"`
 }
 
 type manifest struct {
@@ -396,7 +396,7 @@ func (in *installer) managed(rel, text string, mode fs.FileMode) error {
 	}
 	in.add("conflict", rel)
 	if in.showDiff {
-		_, err := io.WriteString(in.out, unifiedDiff(current, text, rel+" (yours)", rel+" (docs-bootstrap)"))
+		_, err := io.WriteString(in.out, "\n"+unifiedDiff(current, text, rel+" (yours)", rel+" (docs-bootstrap)"))
 		return err
 	}
 	return nil
@@ -434,24 +434,38 @@ func (in *installer) mergeGitignore(rel, text string) error {
 	for _, line := range strings.Split(current, "\n") {
 		existing[strings.TrimSpace(line)] = true
 	}
-	missing := false
+	// Add each missing pattern with the comments just above it in the template.
+	var missing, comments []string
 	for _, line := range strings.Split(text, "\n") {
-		if strings.TrimSpace(line) != "" && !strings.HasPrefix(line, "#") && !existing[strings.TrimSpace(line)] {
-			missing = true
+		switch trimmed := strings.TrimSpace(line); {
+		case trimmed == "":
+			comments = nil
+		case strings.HasPrefix(trimmed, "#"):
+			comments = append(comments, line)
+		default:
+			if !existing[trimmed] {
+				if len(missing) > 0 && len(comments) > 0 {
+					missing = append(missing, "")
+				}
+				missing = append(missing, comments...)
+				missing = append(missing, line)
+			}
+			comments = nil
 		}
 	}
-	if !missing {
+	if len(missing) == 0 {
 		return nil
 	}
+	addition := strings.Join(missing, "\n") + "\n"
 	if current == "" {
 		in.add("created", rel)
-		return in.write(rel, text, 0)
+		return in.write(rel, addition, 0)
 	}
 	if !strings.HasSuffix(current, "\n") {
 		current += "\n"
 	}
 	in.add("merged", rel)
-	return in.write(rel, current+"\n"+text, 0)
+	return in.write(rel, current+"\n"+addition, 0)
 }
 
 func (in *installer) mergeSettings(rel, text string) error {
@@ -569,16 +583,24 @@ func variablesFor(opts options) map[string]string {
 	vars := map[string]string{
 		"PROJECT":      opts.Name,
 		"STYLE":        opts.Style,
-		"NOUN":         opts.Noun,
+		"NOUN":         noun(opts),
 		"AREA":         p.Area,
 		"EXAMPLE_AREA": p.ExampleArea,
 		"DATE":         opts.Date,
-		"AUDIENCE":     strings.ReplaceAll(p.Audience, "{NOUN}", opts.Noun),
+		"AUDIENCE":     strings.ReplaceAll(p.Audience, "{NOUN}", noun(opts)),
 	}
-	if opts.Audience != nil && *opts.Audience != "" {
+	if opts.Audience != nil {
 		vars["AUDIENCE"] = *opts.Audience
 	}
 	return vars
+}
+
+// noun returns the --noun option, or the profile's default.
+func noun(opts options) string {
+	if opts.Noun != nil {
+		return *opts.Noun
+	}
+	return profiles[opts.Profile].Noun
 }
 
 // first returns the first value that isn't empty.
@@ -591,62 +613,86 @@ func first(values ...string) string {
 	return ""
 }
 
-// capitalize upper-cases the first letter, and lower-cases the rest.
+// capitalize upper-cases the first letter.
 func capitalize(s string) string {
-	r := []rune(strings.ToLower(s))
+	r := []rune(s)
 	if len(r) > 0 {
 		r[0] = unicode.ToUpper(r[0])
 	}
 	return string(r)
 }
 
-// title upper-cases the first letter of each word, and lower-cases the rest.
-func title(s string) string {
-	r := []rune(s)
-	inWord := false
-	for i, c := range r {
-		if inWord {
-			r[i] = unicode.ToLower(c)
-		} else {
-			r[i] = unicode.ToUpper(c)
-		}
-		inWord = unicode.IsLetter(c)
+// styleName joins the words of name, each with its first letter upper-cased,
+// and drops everything that isn't a letter or digit.
+func styleName(name string) string {
+	var b strings.Builder
+	for _, word := range alnumWords.FindAllString(name, -1) {
+		b.WriteString(capitalize(word))
 	}
-	return string(r)
+	return b.String()
 }
 
+// flags holds the command-line options. A nil noun or audience wasn't given.
 type flags struct {
-	profile, name, style, noun, audience string
+	profile, name, style string
+	noun, audience       *string
 }
 
-// resolveOptions combines command-line options with those saved by a previous run.
+// usageError is an error in the command line.
+type usageError struct{ error }
+
+// resolveOptions combines command-line options with those saved by a previous
+// run. The noun and audience are saved only when they were given, so that
+// they follow the profile otherwise. Giving one as "" goes back to the default.
 func resolveOptions(f flags, target string, saved options) (options, error) {
 	base := filepath.Base(target)
+	if base == string(filepath.Separator) {
+		base = ""
+	}
 	opts := options{
-		Profile: first(f.profile, saved.Profile, "software"),
-		Name:    first(f.name, saved.Name, capitalize(separators.ReplaceAllString(base, " "))),
-		Date:    first(saved.Date, time.Now().Format("2006-01-02")),
+		Profile:  first(f.profile, saved.Profile, "software"),
+		Name:     first(f.name, saved.Name, capitalize(strings.TrimSpace(separators.ReplaceAllString(base, " ")))),
+		Date:     first(saved.Date, time.Now().Format("2006-01-02")),
+		Noun:     saved.Noun,
+		Audience: saved.Audience,
 	}
-	if audience := first(f.audience, deref(saved.Audience)); audience != "" {
-		opts.Audience = &audience
-	}
-	opts.Style = first(f.style, saved.Style, notAlnum.ReplaceAllString(title(opts.Name), ""), "House")
-	opts.Noun = first(f.noun, saved.Noun, profiles[opts.Profile].Noun)
 	if _, ok := profiles[opts.Profile]; !ok {
 		return opts, fmt.Errorf("unknown profile %q in %s", opts.Profile, manifestName)
 	}
+	if opts.Name == "" {
+		return opts, usageError{errors.New("TARGET has no directory name; give --name")}
+	}
+	if f.noun != nil {
+		opts.Noun = nonEmpty(*f.noun)
+	}
+	if f.audience != nil {
+		opts.Audience = nonEmpty(*f.audience)
+	}
+	opts.Style = first(f.style, saved.Style, styleName(opts.Name), "House")
 	if !validStyle.MatchString(opts.Style) {
-		return opts, errors.New("--style must be letters and digits, starting with a letter")
+		return opts, usageError{errors.New("--style must be letters and digits, starting with a letter")}
 	}
 	return opts, nil
 }
 
-func deref(s *string) string {
-	if s == nil {
+// nonEmpty returns a pointer to s, or nil if s is empty.
+func nonEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// optionalString is a flag that records whether it was given.
+type optionalString struct{ value **string }
+
+func (o optionalString) String() string {
+	if o.value == nil || *o.value == nil {
 		return ""
 	}
-	return *s
+	return **o.value
 }
+func (o optionalString) Set(v string) error { *o.value = &v; return nil }
 
 type stringList []string
 
@@ -682,8 +728,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 	set.StringVar(&f.profile, "profile", "", "")
 	set.StringVar(&f.name, "name", "", "")
 	set.StringVar(&f.style, "style", "", "")
-	set.StringVar(&f.noun, "noun", "", "")
-	set.StringVar(&f.audience, "audience", "", "")
+	set.Var(optionalString{&f.noun}, "noun", "")
+	set.Var(optionalString{&f.audience}, "audience", "")
 	dryRun := set.Bool("dry-run", false, "")
 	showDiff := set.Bool("diff", false, "")
 	set.Var(&replace, "replace", "")
@@ -748,6 +794,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	opts, err := resolveOptions(f, target, saved.Options)
 	if err != nil {
+		if errors.As(err, new(usageError)) {
+			return fail(2, "%v", err)
+		}
 		return fail(1, "%v", err)
 	}
 	in := newInstaller(target, opts, template, *dryRun, *showDiff, replace, saved.Files, stdout)
@@ -763,18 +812,19 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	if len(unknown) > 0 {
 		sort.Strings(unknown)
-		return fail(1, "--replace takes a managed file, such as docs/standards/style-guide.md: %s", strings.Join(unknown, ", "))
+		return fail(2, "--replace takes a managed file, such as docs/standards/style-guide.md: %s", strings.Join(unknown, ", "))
 	}
-	if err := in.run(); err != nil {
-		return fail(1, "%v", err)
-	}
-	report := in.report
 
+	// The header comes first, so that any --diff output follows it.
 	dry := ""
 	if *dryRun {
 		dry = "Dry run: "
 	}
 	fmt.Fprintf(stdout, "%sdocs-bootstrap %s (%s profile, style %s) in %s\n", dry, version, opts.Profile, opts.Style, target)
+	if err := in.run(); err != nil {
+		return fail(1, "%v", err)
+	}
+	report := in.report
 	labels := map[string]string{
 		"created":  "Created",
 		"updated":  "Updated",

@@ -14,7 +14,7 @@ The installer replaces each placeholder, in both file contents and file paths:
 | --- | --- | --- |
 | `{{PROJECT}}` | The `--name` option | `Acme api` |
 | `{{STYLE}}` | The `--style` option | `AcmeApi` |
-| `{{NOUN}}` | The `--noun` option | `project` |
+| `{{NOUN}}` | The `--noun` option, or the profile's default | `project` |
 | `{{AUDIENCE}}` | The `--audience` option, or the profile's default | `a developer who knows…` |
 | `{{AREA}}` | What directories group pages by: `component` or `system`, from the profile | `component` |
 | `{{EXAMPLE_AREA}}` | An example directory name: `api` or `network`, from the profile | `api` |

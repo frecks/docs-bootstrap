@@ -178,6 +178,57 @@ func TestOptionsAreRemembered(t *testing.T) {
 	}
 }
 
+func TestDefaultsFollowTheProfile(t *testing.T) {
+	repo, path := sampleRepo(t)
+	install(t, repo, "--profile", "software")
+	install(t, repo, "--profile", "infrastructure")
+	if !strings.Contains(read(t, path("docs/standards/style-guide.md")), "this environment") {
+		t.Error("noun didn't follow the new profile")
+	}
+	options := readJSON(t, path(".docs-bootstrap.json"))["options"].(map[string]any)
+	if options["noun"] != nil || options["audience"] != nil {
+		t.Errorf("defaults were saved: %v", options)
+	}
+
+	// A given value is saved, and "" goes back to the default.
+	install(t, repo, "--noun", "service")
+	install(t, repo)
+	if options := readJSON(t, path(".docs-bootstrap.json"))["options"].(map[string]any); options["noun"] != "service" {
+		t.Errorf("noun = %v, want service", options["noun"])
+	}
+	install(t, repo, "--noun", "")
+	if options := readJSON(t, path(".docs-bootstrap.json"))["options"].(map[string]any); options["noun"] != nil {
+		t.Errorf("noun = %v, want the default", options["noun"])
+	}
+}
+
+func TestNamesKeepTheirCase(t *testing.T) {
+	tests := []struct{ dir, name, style string }{
+		{"sample-repo", "Sample repo", "SampleRepo"},
+		{"my-API_server", "My API server", "MyAPIServer"},
+		{"acme2go", "Acme2go", "Acme2go"},
+		{"-x-", "X", "X"},
+	}
+	for _, test := range tests {
+		opts, err := resolveOptions(flags{}, filepath.Join("/tmp", test.dir), options{})
+		if err != nil || opts.Name != test.name || opts.Style != test.style {
+			t.Errorf("%s: name %q, style %q, %v; want %q, %q", test.dir, opts.Name, opts.Style, err, test.name, test.style)
+		}
+	}
+	if _, err := resolveOptions(flags{}, "/", options{}); err == nil {
+		t.Error("a root target without --name didn't fail")
+	}
+}
+
+func TestCommandLineErrorsExitTwo(t *testing.T) {
+	repo, _ := sampleRepo(t)
+	for _, args := range [][]string{{"--style", "1x"}, {"--replace", "docs/README.md"}, {"--profile", "x"}, {"--bogus"}} {
+		if code, _ := install(t, repo, args...); code != 2 {
+			t.Errorf("%v: exit %d, want 2", args, code)
+		}
+	}
+}
+
 func TestOptionsMayFollowOrPrecedeTarget(t *testing.T) {
 	repo, path := sampleRepo(t)
 	var out bytes.Buffer
@@ -247,6 +298,17 @@ func TestExistingFilesAreMerged(t *testing.T) {
 		if read(t, path(rel)) != before[rel] {
 			t.Errorf("%s changed on the second run", rel)
 		}
+	}
+}
+
+func TestGitignoreGetsOnlyMissingLines(t *testing.T) {
+	template := t.TempDir()
+	write(t, filepath.Join(template, ".gitignore"), "# Vale\n.vale/styles/Google/\n\n# Caches\n.cache/\n")
+	repo, path := sampleRepo(t)
+	write(t, path(".gitignore"), "node_modules/\n.vale/styles/Google/\n")
+	install(t, repo, "--template-dir", template)
+	if got, want := read(t, path(".gitignore")), "node_modules/\n.vale/styles/Google/\n\n# Caches\n.cache/\n"; got != want {
+		t.Errorf(".gitignore:\n%s\nwant:\n%s", got, want)
 	}
 }
 
@@ -329,8 +391,8 @@ func TestDeletedManagedFileStaysDeleted(t *testing.T) {
 
 func TestReplaceRejectsUnmanagedPathsBeforeWriting(t *testing.T) {
 	repo, path := sampleRepo(t)
-	if code, _ := install(t, repo, "--replace", "docs/README.md"); code == 0 {
-		t.Error("exit 0, want an error")
+	if code, _ := install(t, repo, "--replace", "docs/README.md"); code != 2 {
+		t.Errorf("exit %d, want 2", code)
 	}
 	if _, err := os.Stat(path(".vale.ini")); err == nil {
 		t.Error("installer wrote files before rejecting --replace")

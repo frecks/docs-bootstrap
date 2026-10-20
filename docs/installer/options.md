@@ -21,17 +21,17 @@ The installer includes a copy of the template when you build it. To run it from 
 | Option | Default | Description |
 | --- | --- | --- |
 | `--profile` | `software` | The rule set: `software` or `infrastructure`. See [Profiles](#profiles). |
-| `--name` | The directory name, capitalized, with hyphens and underscores as spaces | Project name, used in titles such as `NAME documentation`. |
-| `--style` | The project name in title case, without spaces | Name of the local Vale style and vocabulary, such as `AcmeApi`. Letters and digits only. |
+| `--name` | The directory name, with hyphens and underscores as spaces and the first letter capitalized | Project name, used in titles such as `NAME documentation`. Required if `TARGET` is a root directory. |
+| `--style` | The words of the project name, each capitalized, without spaces or punctuation | Name of the local Vale style and vocabulary, such as `AcmeApi`. Letters and digits only. |
 | `--noun` | `project` or `environment`, from the profile | What the docs describe, as in `this NOUN`. |
 | `--audience` | A sentence from the profile | Who the docs are for, completing `Write for …`. |
 | `--dry-run` | Off | Prints what would change, without writing. |
 | `--diff` | Off | Prints a diff for each file in conflict. |
 | `--replace PATH` | None | Takes the new version of a managed file, replacing local edits. Repeat it for more files. |
 
-The installer saves every option except `--dry-run`, `--diff`, and `--replace` in `.docs-bootstrap.json`. A later run uses the saved values, unless you give the option again.
+The installer saves `--profile`, `--name`, and `--style` in `.docs-bootstrap.json`, and `--noun` and `--audience` only if you give them. A later run uses the saved values, unless you give the option again. Without a saved value, `--noun` and `--audience` follow the profile, so they change if you change the profile. To go back to the default, give an empty value, such as `--audience ""`.
 
-The installer exits with status 2 when the command line is invalid, such as an unknown option, a missing `TARGET`, or an unknown `--profile`. It exits with status 1 when any file is in conflict, when it rejects a `--style` or `--replace` value, or when the install fails. Otherwise, it exits with status 0.
+The installer exits with status 2 when the command line is invalid, such as an unknown option or profile, a missing `TARGET`, a `--style` with other characters, or a `--replace` path that isn't a managed file. It exits with status 1 when any file is in conflict or the install fails. Otherwise, it exits with status 0.
 
 ## Profiles
 
@@ -55,7 +55,7 @@ The installer treats each file one of three ways. For the reasons, see [Why the 
 
 How each merged file changes:
 
-- **`.gitignore`:** the installer adds the lines from the template that aren't already in the file.
+- **`.gitignore`:** the installer adds the lines from the template that aren't already in the file, each with any comment directly before it in the template.
 - **`.claude/settings.json`:** the installer adds the documentation hook to `hooks.PostToolUse`, and keeps every other setting and hook.
 - **`AGENTS.md`:** the installer adds a documentation section between `<!-- docs-bootstrap:begin -->` and `<!-- docs-bootstrap:end -->`, and replaces that section on later runs. Text outside it is yours.
 - **`CLAUDE.md`:** if it's missing, the installer creates it as a link to `AGENTS.md`. If it's a file, the installer adds an `@AGENTS.md` line, which makes Claude Code read `AGENTS.md`.
