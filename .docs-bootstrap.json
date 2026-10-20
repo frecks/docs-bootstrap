@@ -7,8 +7,8 @@
   "files": {
     ".agents/skills/docs-review/SKILL.md": "f4f05fff15f4704ee341eabe8e0f3fe10c1f6c596d203759b25962eb2eea6778",
     ".agents/skills/docs-write/SKILL.md": "017dcc25916082cb058b75cfc8aa967e5ee6716c5bce706c369e3a8ccc47dade",
-    ".claude/hooks/docs-lint-stop.sh": "8ba721404beca7d44c5f0ae8d13541d9f52d28c44bfc1aa3713a08f73d544396",
-    ".claude/hooks/docs-lint.sh": "63ff4adb8bb43eb6eeae91db1e436cf20b5f4f30d2ae73a1bf1f6dd6b4067f13",
+    ".claude/hooks/docs-lint-stop.sh": "e0912f9c9f4753c2cfc2bfc245b21325008cf80d4e6808c8de609066b017c351",
+    ".claude/hooks/docs-lint.sh": "69b1b5c08d08a6151c94d07ea2e4373c2c59e6b263f1c8120ea7f8019c1fbba3",
     ".markdownlint-cli2.jsonc": "6f9fa78f8fc8cfa92bd1822f6b33d9cd44dc97533e35896f522ba1cc7fae3712",
     ".markdownlint/package-lock.json": "cfaacdba09ef5e9019d5188808f0a4080c9c9407fe90396833b13be719911484",
     ".markdownlint/package.json": "d9a935c91c40db1e9682527f41303696adf3cf6d0736f0216dab2ac29b965aac",

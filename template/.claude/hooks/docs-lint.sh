@@ -11,21 +11,30 @@ command -v jq > /dev/null || exit 0
 
 file="$(jq -r '.tool_input.file_path // empty')"
 [ -f "$file" ] || exit 0
-file="$(realpath -- "$file")"
+file="$(realpath -- "$file")" || exit 0
 
-# Check the repository that holds the edited file: the nearest directory above
-# it with scripts/docs-lint.sh and docs/. In a git worktree, that's the
-# worktree, while $CLAUDE_PROJECT_DIR can name the main checkout.
-root="$(dirname "$file")"
-until [ -x "$root/scripts/docs-lint.sh" ] && [ -d "$root/docs" ]; do
-  [ "$root" = / ] && exit 0
-  root="$(dirname "$root")"
-done
+project="$(realpath -- "${CLAUDE_PROJECT_DIR:-$(dirname "${BASH_SOURCE[0]}")/../..}")" || exit 0
+
+# common_dir prints the git directory that a checkout's worktrees share.
+common_dir() {
+  git -C "$1" rev-parse --path-format=absolute --git-common-dir 2> /dev/null
+}
+
+# Check the checkout that holds the edited file, if it's a worktree of this
+# project: $CLAUDE_PROJECT_DIR can name the main checkout while the session
+# works in a worktree. Any other repository, such as one that this one
+# contains, isn't checked.
+root="$project"
+if top="$(git -C "$(dirname "$file")" rev-parse --show-toplevel 2> /dev/null)" &&
+  [ "$(common_dir "$top")" = "$(common_dir "$project")" ]; then
+  root="$top"
+fi
 
 case "$file" in
   "$root"/docs/*.md) ;;
   *) exit 0 ;;
 esac
+[ -x "$root/scripts/docs-lint.sh" ] || exit 0
 
 context() {
   jq -n --arg ctx "$1" '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $ctx}}'

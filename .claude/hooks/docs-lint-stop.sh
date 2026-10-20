@@ -12,16 +12,23 @@ command -v jq > /dev/null || exit 0
 
 input="$(cat)"
 
-# Check the repository the session works in: the nearest directory at or above
-# its working directory with scripts/docs-lint.sh and docs/. In a git
-# worktree, that's the worktree, while $CLAUDE_PROJECT_DIR can name the main
-# checkout.
-root="$(jq -r '.cwd // empty' <<< "$input")"
-root="$(realpath -- "${root:-${CLAUDE_PROJECT_DIR:-$PWD}}" 2> /dev/null)" || exit 0
-until [ -x "$root/scripts/docs-lint.sh" ] && [ -d "$root/docs" ]; do
-  [ "$root" = / ] && exit 0
-  root="$(dirname "$root")"
-done
+project="$(realpath -- "${CLAUDE_PROJECT_DIR:-$(dirname "${BASH_SOURCE[0]}")/../..}")" || exit 0
+
+# common_dir prints the git directory that a checkout's worktrees share.
+common_dir() {
+  git -C "$1" rev-parse --path-format=absolute --git-common-dir 2> /dev/null
+}
+
+# Check the checkout the session works in, if it's a worktree of this project:
+# $CLAUDE_PROJECT_DIR can name the main checkout while the session works in a
+# worktree. Otherwise, check the project.
+root="$project"
+cwd="$(jq -r '.cwd // empty' <<< "$input")"
+if [ -n "$cwd" ] && top="$(git -C "$cwd" rev-parse --show-toplevel 2> /dev/null)" &&
+  [ "$(common_dir "$top")" = "$(common_dir "$project")" ]; then
+  root="$top"
+fi
+[ -x "$root/scripts/docs-lint.sh" ] || exit 0
 
 # After a blocked stop, let Claude finish rather than block again.
 if [ "$(jq -r '.stop_hook_active // false' <<< "$input")" = "true" ]; then

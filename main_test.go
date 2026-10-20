@@ -1003,4 +1003,31 @@ func TestHooksCheckTheWorktreeTheyRunIn(t *testing.T) {
 	if code, out := hook("docs-lint-stop.sh", `{"cwd": "`+repo+`"}`); code != 0 {
 		t.Errorf("Stop hook in the unchanged main checkout: exit %d, want 0:\n%s", code, out)
 	}
+
+	// A directory inside the project that looks like a docs repository, as
+	// template/ does in docs-bootstrap, isn't checked as one. Its script
+	// records whether it ran.
+	ran := filepath.Join(t.TempDir(), "ran")
+	write(t, path("template/scripts/docs-lint.sh"), "#!/bin/sh\ntouch "+ran+"\nexit 1\n")
+	if err := os.Chmod(path("template/scripts/docs-lint.sh"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write(t, path("template/docs/page.md"), "# Page\n")
+	if code, out := hook("docs-lint.sh", `{"tool_input": {"file_path": "`+path("template/docs/page.md")+`"}}`); code != 0 {
+		t.Errorf("edit hook on a nested template page: exit %d, want 0:\n%s", code, out)
+	}
+	if _, err := os.Stat(ran); err == nil {
+		t.Error("the nested directory's script ran")
+	}
+
+	// Another repository with the documentation system isn't checked.
+	other, otherPath := sampleRepo(t)
+	install(t, other)
+	if out, err := exec.Command("git", "-C", other, "init", "-q").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	write(t, otherPath("docs/untyped.md"), "# Untyped\n")
+	if code, out := hook("docs-lint.sh", `{"tool_input": {"file_path": "`+otherPath("docs/untyped.md")+`"}}`); code != 0 {
+		t.Errorf("edit hook on another repository: exit %d, want 0:\n%s", code, out)
+	}
 }
