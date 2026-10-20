@@ -52,12 +52,12 @@ When a command runs somewhere other than the reader's own machine, such as on a 
 
 ## Commands and output
 
-- Put commands in a code block with a language, usually `bash`.
+- Put commands in a code block with a language, usually `bash`. Use `fish` only for commands that work only in fish.
 - Don't include a prompt such as `$` or `#`, so the block can be copied and pasted.
 - Put one command on each line.
 - Show expected output in its own code block, marked `text`, after the sentence that introduces it.
 
-**Why:** this follows Google's [code samples](https://developers.google.com/style/code-samples) and [command-line syntax](https://developers.google.com/style/code-syntax) guidance. The only addition is a default language for shell commands, so every block is highlighted the same way.
+**Why:** this follows Google's [code samples](https://developers.google.com/style/code-samples) and [command-line syntax](https://developers.google.com/style/code-syntax) guidance. The only addition is the default shell: `bash` syntax works in the shells most hosts use, while fish syntax works only in fish.
 
 **Enforced by:** markdownlint (code blocks must be fenced and have a language), and review.
 

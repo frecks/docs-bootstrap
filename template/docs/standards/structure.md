@@ -114,4 +114,4 @@ When a page starts to serve a second need, split it, and link the pages together
 - Name files in lowercase with hyphens, matching the title, such as `rotate-the-tls-certificate.md`.
 - Keep each fact in one page, and link to it from others instead of copying it. An explanation page may summarize a rule to explain it, but it links to the rule, and the rule's own page stays the authority.
 - Add each new page to `docs/README.md` under its area, with its type, and to the area's `README.md` if it has one.
-- Update a page in the same change as the code or configuration it describes.
+- Update a page in the same change as the code or configuration it describes. When you change a system directly instead, such as on a host, in a web interface, or in a cloud console, update the pages that describe it as part of the same task, before you call the task done.
