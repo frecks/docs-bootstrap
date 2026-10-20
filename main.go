@@ -156,6 +156,18 @@ func readIfExists(path string) (string, bool, error) {
 	return normalizeNewlines(string(data)), err == nil, err
 }
 
+// read returns a repository file's contents with \n line endings, and
+// whether it exists. It records whether the file had CRLF line endings, so
+// that write can keep them.
+func (in *installer) read(rel string) (string, bool, error) {
+	data, err := os.ReadFile(in.path(rel))
+	if errors.Is(err, fs.ErrNotExist) {
+		return "", false, nil
+	}
+	in.crlf[rel] = bytes.Contains(data, []byte("\r\n"))
+	return normalizeNewlines(string(data)), err == nil, err
+}
+
 // normalizeNewlines turns \r\n and \r line endings into \n, so a checkout
 // with CRLF line endings matches the template.
 func normalizeNewlines(text string) string {
@@ -219,6 +231,7 @@ type installer struct {
 	vars      map[string]string
 	oldHashes map[string]string
 	newHashes map[string]string
+	crlf      map[string]bool // files read with CRLF line endings
 	report    map[string][]string
 	out       io.Writer
 }
@@ -241,6 +254,7 @@ func newInstaller(target string, opts options, template fs.FS, dryRun, showDiff 
 		vars:      variablesFor(opts),
 		oldHashes: oldHashes,
 		newHashes: map[string]string{},
+		crlf:      map[string]bool{},
 		report:    map[string][]string{},
 		out:       out,
 	}
@@ -302,9 +316,7 @@ func (in *installer) write(rel, text string, mode fs.FileMode) error {
 	if err := os.MkdirAll(filepath.Dir(full), 0o777); err != nil {
 		return err
 	}
-	// Keep CRLF line endings in a file that has them, since the text was
-	// read with \n endings.
-	if old, err := os.ReadFile(full); err == nil && bytes.Contains(old, []byte("\r\n")) {
+	if in.crlf[rel] {
 		text = strings.ReplaceAll(text, "\n", "\r\n")
 	}
 	if err := os.WriteFile(full, []byte(text), 0o666); err != nil {
@@ -364,7 +376,7 @@ func (in *installer) seed(rel, text string, mode fs.FileMode) error {
 func (in *installer) managed(rel, text string, mode fs.FileMode) error {
 	full := in.path(rel)
 	newHash := sha(text)
-	current, exists, err := readIfExists(full)
+	current, exists, err := in.read(rel)
 	if err != nil {
 		return err
 	}
@@ -430,9 +442,10 @@ func (in *installer) diff(rel, current, text string) error {
 		}
 	}
 	fmt.Fprintln(in.out)
-	// --color=auto overrides a color.ui=always setting, which would put
-	// escape codes in redirected output.
-	cmd := exec.Command("git", "--no-pager", "diff", "--no-index", "--no-ext-diff", "--no-prefix", "--color=auto", "--", yours, ours)
+	// Compare the plain text, whatever the user's diff drivers and textconv
+	// settings. --color=auto overrides a color.ui=always setting, which would
+	// put escape codes in redirected output.
+	cmd := exec.Command("git", "--no-pager", "diff", "--no-index", "--no-ext-diff", "--no-textconv", "--no-prefix", "--color=auto", "--", yours, ours)
 	cmd.Dir = dir
 	var stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = in.out, &stderr
@@ -460,7 +473,7 @@ func markersPaired(text string) bool {
 
 func (in *installer) mergeAgentsMD(rel, block string) error {
 	block = blockBegin + "\n" + strings.TrimRight(block, "\n") + "\n" + blockEnd
-	current, exists, err := readIfExists(in.path(rel))
+	current, exists, err := in.read(rel)
 	if err != nil {
 		return err
 	}
@@ -471,6 +484,10 @@ func (in *installer) mergeAgentsMD(rel, block string) error {
 	// Replacing between unpaired markers would delete the text between them.
 	if !markersPaired(current) {
 		in.add("conflict", rel+" (a docs-bootstrap:begin or :end comment is missing; fix it by hand)")
+		return nil
+	}
+	if strings.Count(current, blockBegin) > 1 {
+		in.add("conflict", rel+" (more than one docs-bootstrap section; delete all but one)")
 		return nil
 	}
 	var result string
@@ -487,7 +504,7 @@ func (in *installer) mergeAgentsMD(rel, block string) error {
 }
 
 func (in *installer) mergeGitignore(rel, text string) error {
-	current, _, err := readIfExists(in.path(rel))
+	current, exists, err := in.read(rel)
 	if err != nil {
 		return err
 	}
@@ -518,15 +535,18 @@ func (in *installer) mergeGitignore(rel, text string) error {
 		return nil
 	}
 	addition := strings.Join(missing, "\n") + "\n"
-	if current == "" {
+	if !exists {
 		in.add("created", rel)
 		return in.write(rel, addition, 0)
 	}
-	if !strings.HasSuffix(current, "\n") {
-		current += "\n"
+	if current != "" {
+		addition = "\n" + addition
+		if !strings.HasSuffix(current, "\n") {
+			current += "\n"
+		}
 	}
 	in.add("merged", rel)
-	return in.write(rel, current+"\n"+addition, 0)
+	return in.write(rel, current+addition, 0)
 }
 
 func (in *installer) mergeSettings(rel, text string) error {
@@ -539,7 +559,7 @@ func (in *installer) mergeSettings(rel, text string) error {
 	if !ok {
 		return fmt.Errorf("template %s: hooks.PostToolUse[0].hooks[0].command is missing", rel)
 	}
-	current, exists, err := readIfExists(in.path(rel))
+	current, exists, err := in.read(rel)
 	if err != nil {
 		return err
 	}
@@ -597,7 +617,7 @@ func (in *installer) linkClaudeMD() error {
 	if info, err := os.Lstat(full); err == nil && info.Mode()&fs.ModeSymlink != 0 {
 		return nil
 	}
-	current, exists, err := readIfExists(full)
+	current, exists, err := in.read(rel)
 	if err != nil {
 		return err
 	}
@@ -821,26 +841,31 @@ func run(args []string, stdout, stderr io.Writer) int {
 	templateDir := set.String("template-dir", "", "")
 	showVersion := set.Bool("version", false, "")
 
-	// Options may come before or after TARGET.
-	var positional []string
-	for rest := args; ; rest = set.Args()[1:] {
-		if err := set.Parse(rest); err != nil {
-			if errors.Is(err, flag.ErrHelp) {
-				fmt.Fprint(stdout, usage)
-				return 0
+	// Options may come before or after TARGET, so sort the arguments into
+	// flags, with their values, and positional arguments.
+	var flagArgs, positional []string
+	for i := 0; i < len(args); i++ {
+		switch arg := args[i]; {
+		case arg == "--":
+			positional = append(positional, args[i+1:]...)
+			i = len(args)
+		case len(arg) > 1 && arg[0] == '-':
+			flagArgs = append(flagArgs, arg)
+			if takesValue(set, arg) && i+1 < len(args) {
+				i++
+				flagArgs = append(flagArgs, args[i])
 			}
-			fmt.Fprint(stderr, usage)
-			return 2
+		default:
+			positional = append(positional, arg)
 		}
-		if set.NArg() == 0 {
-			break
+	}
+	if err := set.Parse(flagArgs); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			fmt.Fprint(stdout, usage)
+			return 0
 		}
-		// Everything after "--" is positional, unless the "--" was a flag's value.
-		if parsed := len(rest) - set.NArg(); parsed > 0 && rest[parsed-1] == "--" && !(parsed > 1 && takesValue(set, rest[parsed-2])) {
-			positional = append(positional, set.Args()...)
-			break
-		}
-		positional = append(positional, set.Arg(0))
+		fmt.Fprint(stderr, usage)
+		return 2
 	}
 	if *showVersion {
 		fmt.Fprintf(stdout, "docs-bootstrap %s\n", version)
@@ -873,11 +898,6 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return fail(1, "%v", err)
 	}
-	if !*dryRun {
-		if err := os.MkdirAll(target, 0o777); err != nil {
-			return fail(1, "%v", err)
-		}
-	}
 	saved, err := readManifest(target)
 	if err != nil {
 		return fail(1, "%v", err)
@@ -908,6 +928,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if len(unknown) > 0 {
 		sort.Strings(unknown)
 		return fail(2, "--replace takes a managed file, such as docs/standards/style-guide.md: %s", strings.Join(unknown, ", "))
+	}
+
+	// Create the target only once the command line is known to be valid.
+	if !*dryRun {
+		if err := os.MkdirAll(target, 0o777); err != nil {
+			return fail(1, "%v", err)
+		}
 	}
 
 	// The header comes first, so that any --diff output follows it.

@@ -58,7 +58,7 @@ How each merged file changes:
 
 - **`.gitignore`:** the installer adds the lines from the template that aren't already in the file, each with any comment directly before it in the template.
 - **`.claude/settings.json`:** the installer adds the documentation hook to `hooks.PostToolUse`, and keeps every other setting and hook.
-- **`AGENTS.md`:** the installer adds a documentation section between `<!-- docs-bootstrap:begin -->` and `<!-- docs-bootstrap:end -->`, and replaces that section on later runs. Text outside it is yours. If either comment is missing, the installer reports a conflict and leaves the file unchanged.
+- **`AGENTS.md`:** the installer adds a documentation section between `<!-- docs-bootstrap:begin -->` and `<!-- docs-bootstrap:end -->`, and replaces that section on later runs. Text outside it is yours. If either comment is missing, or the file has more than one section, the installer reports a conflict and leaves the file unchanged.
 - **`CLAUDE.md`:** if it's missing, the installer creates it as a link to `AGENTS.md`. If it's a file, the installer adds an `@AGENTS.md` line, which makes Claude Code read `AGENTS.md`.
 
 The installer keeps the line endings of each file it changes, so a file with CRLF line endings keeps them.

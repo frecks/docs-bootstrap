@@ -256,6 +256,48 @@ func TestArgumentsAfterDoubleDashArePositional(t *testing.T) {
 	}
 }
 
+func TestDoubleDashAfterAFlagValueEndsOptions(t *testing.T) {
+	repo, _ := sampleRepo(t)
+	if code, _ := install(t, "--name", "--noun", "--", repo, "--dry-run"); code != 2 {
+		t.Errorf("exit %d, want 2 for two targets", code)
+	}
+}
+
+func TestUsageErrorsCreateNothing(t *testing.T) {
+	repo, _ := sampleRepo(t)
+	for _, args := range [][]string{{"--style", "1x"}, {"--replace", "README.md"}} {
+		install(t, repo, args...)
+		if _, err := os.Stat(repo); err == nil {
+			t.Errorf("%v created the target", args)
+		}
+	}
+}
+
+func TestEmptyGitignoreIsMerged(t *testing.T) {
+	repo, path := sampleRepo(t)
+	write(t, path(".gitignore"), "")
+	_, out := install(t, repo)
+	if _, merged, _ := strings.Cut(out, "Merged into"); !strings.Contains(merged, ".gitignore") {
+		t.Errorf(".gitignore isn't listed as merged:\n%s", out)
+	}
+	if text := read(t, path(".gitignore")); !strings.HasPrefix(text, "#") {
+		t.Errorf(".gitignore starts with a blank line:\n%q", text)
+	}
+}
+
+func TestDuplicateAgentsSectionsAreAConflict(t *testing.T) {
+	repo, path := sampleRepo(t)
+	section := blockBegin + "\nOld.\n" + blockEnd + "\n"
+	text := "# Sample\n\n" + section + "\n" + section
+	write(t, path("AGENTS.md"), text)
+	if code, out := install(t, repo); code != 1 || !strings.Contains(out, "more than one docs-bootstrap section") {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+	if read(t, path("AGENTS.md")) != text {
+		t.Error("AGENTS.md changed")
+	}
+}
+
 func TestDoubleDashMayBeAFlagValue(t *testing.T) {
 	repo, path := sampleRepo(t)
 	if code, out := install(t, "--audience", "--", repo); code != 0 {
