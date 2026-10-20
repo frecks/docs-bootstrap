@@ -137,6 +137,9 @@ func TestProfilesDifferWhereIntended(t *testing.T) {
 	if !strings.Contains(guide, "## Say where a command runs") || !strings.Contains(guide, "this service") {
 		t.Error("infrastructure style guide is missing its section or noun")
 	}
+	if !strings.Contains(read(t, path(".agents/skills/docs-review/SKILL.md")), "path, hostname, address, port,") {
+		t.Error("infrastructure docs-review skill doesn't check hostnames and ports")
+	}
 
 	repo, path = sampleRepo(t)
 	install(t, repo, "--profile", "software")
@@ -145,6 +148,9 @@ func TestProfilesDifferWhereIntended(t *testing.T) {
 	}
 	if strings.Contains(read(t, path(".agents/skills/docs-write/SKILL.md")), "Name the host") {
 		t.Error("software docs-write skill has the infrastructure rule")
+	}
+	if strings.Contains(read(t, path(".agents/skills/docs-review/SKILL.md")), "hostname") {
+		t.Error("software docs-review skill has the infrastructure accuracy check")
 	}
 }
 
