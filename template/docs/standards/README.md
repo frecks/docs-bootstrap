@@ -25,15 +25,14 @@ Run the checks on any page you change:
 scripts/docs-lint.sh docs/api/example.md
 ```
 
-The script runs five checks, and fails on errors:
+The script runs four checks, and fails on errors:
 
 | Check | Tool | Configuration |
 | --- | --- | --- |
 | Page is in an area directory, and declares a Diátaxis type | `scripts/docs-lint.sh` | [structure.md](structure.md) |
 | No instructions left from a template | `scripts/docs-lint.sh` | [templates/](templates/) |
-| Relative links point to files that exist | `scripts/check-links.py` | None |
 | Prose style | [Vale](https://vale.sh/) | `.vale.ini`, `.vale/styles/{{STYLE}}/`, and the {{STYLE}} vocabulary |
-| Markdown syntax | [markdownlint](https://github.com/DavidAnson/markdownlint) | `.markdownlint-cli2.jsonc` |
+| Markdown syntax, and relative links that point to files and headings that exist | [markdownlint](https://github.com/DavidAnson/markdownlint) | `.markdownlint-cli2.jsonc` |
 
 In Claude Code, a hook runs the same script after every edit to a file in `docs/`, and sends errors back to the agent to fix.
 

@@ -24,8 +24,9 @@ Bring a repository up to date with the current version of the documentation syst
 1. Read the output:
 
    - **Updated:** files you hadn't edited, now at the new version.
+   - **Removed:** files you hadn't edited that the new version no longer installs.
    - **Conflicts, left unchanged:** files you edited, which the installer kept.
-   - **Not restored:** files you deleted, which the installer leaves deleted.
+   - **Not restored:** files you deleted, which the installer leaves deleted, and files you edited that the new version no longer installs, which are now yours to keep or delete.
 
 1. For each conflict, compare your version with the new one:
 

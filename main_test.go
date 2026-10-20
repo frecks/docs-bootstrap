@@ -124,7 +124,7 @@ func TestInstallPassesItsOwnStructureChecks(t *testing.T) {
 	repo, path := sampleRepo(t)
 	install(t, repo)
 	out, _ := exec.Command(path("scripts/docs-lint.sh")).Output()
-	for _, section := range []string{"== Placement and type\nOK", "== Template instructions\nOK", "== Links\nOK"} {
+	for _, section := range []string{"== Placement and type\nOK", "== Template instructions\nOK", "== markdownlint\nOK"} {
 		if !strings.Contains(string(out), section) {
 			t.Errorf("missing %q in:\n%s", section, out)
 		}
@@ -426,6 +426,41 @@ func TestUpgradeUpdatesUneditedFilesAndKeepsEditedOnes(t *testing.T) {
 	}
 	if text := read(t, guide); strings.Contains(text, "Local rule.") || !strings.Contains(text, "Upstream change.") {
 		t.Error("--replace didn't take the new version")
+	}
+	if code, out := install(t, repo, "--template-dir", template); code != 0 || !strings.Contains(out, "Already up to date.") {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+}
+
+func TestFilesDroppedFromTheTemplateAreRemoved(t *testing.T) {
+	template := copyDir(t, "template")
+	write(t, filepath.Join(template, "scripts/old.sh"), "#!/bin/sh\n")
+	write(t, filepath.Join(template, "scripts/edited.sh"), "#!/bin/sh\n")
+	repo, path := sampleRepo(t)
+	install(t, repo, "--template-dir", template)
+	write(t, path("scripts/edited.sh"), "#!/bin/sh\necho local\n")
+
+	for _, rel := range []string{"scripts/old.sh", "scripts/edited.sh"} {
+		if err := os.Remove(filepath.Join(template, rel)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	code, out := install(t, repo, "--template-dir", template)
+	if code != 0 {
+		t.Fatalf("exit %d:\n%s", code, out)
+	}
+	if _, err := os.Stat(path("scripts/old.sh")); err == nil {
+		t.Error("unedited file dropped from the template wasn't removed")
+	}
+	if _, removed, _ := strings.Cut(out, "Removed"); !strings.Contains(removed, "scripts/old.sh") {
+		t.Errorf("scripts/old.sh isn't listed as removed:\n%s", out)
+	}
+	if text := read(t, path("scripts/edited.sh")); !strings.Contains(text, "echo local") {
+		t.Error("edited file dropped from the template wasn't kept")
+	}
+	files := readJSON(t, path(".docs-bootstrap.json"))["files"].(map[string]any)
+	if files["scripts/old.sh"] != nil || files["scripts/edited.sh"] != nil {
+		t.Errorf("dropped files are still in the manifest: %v", files)
 	}
 	if code, out := install(t, repo, "--template-dir", template); code != 0 || !strings.Contains(out, "Already up to date.") {
 		t.Errorf("exit %d:\n%s", code, out)

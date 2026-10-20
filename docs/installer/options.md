@@ -38,7 +38,7 @@ The installer treats each file one of three ways. For the reasons, see [Why the 
 
 | Kind | Files | On first run | On later runs |
 | --- | --- | --- | --- |
-| Managed | Every file in `template/` that isn't listed below | Created, or a conflict if a different file exists | Updated if unedited since the last run, otherwise a conflict |
+| Managed | Every file in `template/` that isn't listed below | Created, or a conflict if a different file exists | Updated if unedited since the last run, otherwise a conflict. Removed if the template no longer has it and it's unedited, otherwise kept |
 | Seed | `docs/README.md`, the pages in `docs/documentation/`, and the vocabulary's `accept.txt` | Created if missing | Never changed |
 | Merged | `.gitignore`, `.claude/settings.json`, `AGENTS.md`, `CLAUDE.md`, and the links in `.claude/skills/` | Created, or the needed lines added to the existing file | The needed lines added again if missing |
 

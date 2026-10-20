@@ -136,4 +136,4 @@ Use American spelling, as Google does. Vale's spell checker is off.
 
 **Why:** Google doesn't set Markdown syntax. These choices make pages consistent and keep diffs small: one-line paragraphs change one line per edit, and `1.` numbering doesn't renumber a list when a step is added.
 
-**Enforced by:** markdownlint, and `scripts/check-links.py` for links to missing files. Review checks that links are relative and that bold is used correctly.
+**Enforced by:** markdownlint, including links to missing files and headings. Review checks that links are relative and that bold is used correctly.

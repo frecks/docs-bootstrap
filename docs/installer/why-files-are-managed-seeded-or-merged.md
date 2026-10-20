@@ -28,6 +28,8 @@ For each managed file, the installer stores a hash of the version it installed i
 
 Local edits always win. To take the new version anyway, you name the file with `--replace`, so losing an edit is always a deliberate choice.
 
+When a new version drops a managed file from the template, the installer deletes it if it's unedited, so a repository doesn't keep files that nothing uses, such as an old script. If someone has edited it, the installer keeps it, and the repository owns it from then on.
+
 When someone deletes a managed file, the installer leaves it deleted. A repository may not want a file, such as the tutorial template, and restoring it on every upgrade would undo that choice.
 
 ### The installer creates seed files once

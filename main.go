@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	version      = "0.2.0"
+	version      = "0.3.0"
 	manifestName = ".docs-bootstrap.json"
 	blockBegin   = "<!-- docs-bootstrap:begin -->"
 	blockEnd     = "<!-- docs-bootstrap:end -->"
@@ -162,6 +162,7 @@ func marshal(v any) (string, error) {
 var reportSections = []struct{ key, label string }{
 	{"created", "Created"},
 	{"updated", "Updated"},
+	{"removed", "Removed"},
 	{"merged", "Merged into"},
 	{"kept", "Not restored"},
 	{"conflict", "Conflicts, left unchanged"},
@@ -288,6 +289,9 @@ func (in *installer) run() error {
 			return err
 		}
 	}
+	if err := in.removeObsolete(); err != nil {
+		return err
+	}
 	if err := in.linkClaudeMD(); err != nil {
 		return err
 	}
@@ -307,6 +311,40 @@ func (in *installer) managedPaths() map[string]bool {
 		}
 	}
 	return paths
+}
+
+// removeObsolete deletes the managed files that an earlier version installed
+// and the template no longer has, unless they were edited since.
+func (in *installer) removeObsolete() error {
+	current := in.managedPaths()
+	var obsolete []string
+	for rel := range in.oldHashes {
+		if !current[rel] {
+			obsolete = append(obsolete, rel)
+		}
+	}
+	sort.Strings(obsolete)
+	for _, rel := range obsolete {
+		text, exists, err := in.read(rel)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			continue
+		}
+		if sha(text) != in.oldHashes[rel] {
+			// The repository owns it from now on.
+			in.add("kept", rel+" (no longer installed, but edited locally)")
+			continue
+		}
+		in.add("removed", rel)
+		if !in.dryRun {
+			if err := os.Remove(in.path(rel)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (in *installer) seed(rel, text string, mode fs.FileMode) error {
@@ -831,7 +869,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 			}
 		}
 	}
-	if len(report["created"])+len(report["updated"])+len(report["merged"])+len(report["conflict"]) == 0 {
+	if len(report["created"])+len(report["updated"])+len(report["removed"])+len(report["merged"])+len(report["conflict"]) == 0 {
 		fmt.Fprint(stdout, "\nAlready up to date.\n")
 	}
 	if len(report["conflict"]) > 0 {
