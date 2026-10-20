@@ -208,6 +208,7 @@ func TestNamesKeepTheirCase(t *testing.T) {
 		{"my-API_server", "My API server", "MyAPIServer"},
 		{"acme2go", "Acme2go", "Acme2go"},
 		{"-x-", "X", "X"},
+		{"2048-game", "2048 game", "House"},
 	}
 	for _, test := range tests {
 		opts, err := resolveOptions(flags{}, filepath.Join("/tmp", test.dir), options{})
@@ -252,6 +253,57 @@ func TestArgumentsAfterDoubleDashArePositional(t *testing.T) {
 	repo, _ := sampleRepo(t)
 	if code, _ := install(t, "--", repo, "--dry-run"); code != 2 {
 		t.Errorf("exit %d, want 2 for two targets", code)
+	}
+}
+
+func TestDoubleDashMayBeAFlagValue(t *testing.T) {
+	repo, path := sampleRepo(t)
+	if code, out := install(t, "--audience", "--", repo); code != 0 {
+		t.Fatalf("exit %d:\n%s", code, out)
+	}
+	if options := readJSON(t, path(".docs-bootstrap.json"))["options"].(map[string]any); options["audience"] != "--" {
+		t.Errorf("audience = %v, want --", options["audience"])
+	}
+}
+
+func TestCRLFFilesKeepTheirLineEndings(t *testing.T) {
+	repo, path := sampleRepo(t)
+	write(t, path("AGENTS.md"), "# Sample\r\n\r\nBuild with make.\r\n")
+	install(t, repo)
+	agents := read(t, path("AGENTS.md"))
+	if strings.Count(agents, "\n") != strings.Count(agents, "\r\n") {
+		t.Errorf("AGENTS.md has LF line endings:\n%q", agents)
+	}
+
+	// A conflict's diff shows only the lines that changed.
+	vale := path(".vale.ini")
+	write(t, vale, strings.Replace(strings.ReplaceAll(read(t, vale), "\n", "\r\n"), "StylesPath", "StylesPath2", 1))
+	_, out := install(t, repo, "--diff")
+	// One line for the --- header, and one for the change.
+	if n := strings.Count(out, "\n-"); n != 2 || strings.Contains(out, "\r") {
+		t.Errorf("diff has %d lines starting with -, want 2:\n%q", n, out)
+	}
+}
+
+func TestUnpairedAgentsMarkersAreAConflict(t *testing.T) {
+	repo, path := sampleRepo(t)
+	text := "# Sample\n\n" + blockBegin + "\nOld docs section.\n\nMy notes.\n"
+	write(t, path("AGENTS.md"), text)
+	if code, out := install(t, repo); code != 1 || !strings.Contains(out, "AGENTS.md (a docs-bootstrap:begin") {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+	if read(t, path("AGENTS.md")) != text {
+		t.Error("AGENTS.md changed")
+	}
+}
+
+func TestBrokenTemplateSettingsFail(t *testing.T) {
+	template := t.TempDir()
+	write(t, filepath.Join(template, ".claude/settings.json"), `{"hooks": {}}`)
+	repo, path := sampleRepo(t)
+	write(t, path(".claude/settings.json"), `{}`)
+	if code, out := install(t, repo, "--template-dir", template); code != 1 || !strings.Contains(out, "command is missing") {
+		t.Errorf("exit %d:\n%s", code, out)
 	}
 }
 

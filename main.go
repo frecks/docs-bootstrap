@@ -200,7 +200,14 @@ func marshal(v any) (string, error) {
 	return b.String(), err
 }
 
-var reportKeys = []string{"created", "updated", "merged", "kept", "conflict"}
+// reportSections are the report's sections, in the order they're printed.
+var reportSections = []struct{ key, label string }{
+	{"created", "Created"},
+	{"updated", "Updated"},
+	{"merged", "Merged into"},
+	{"kept", "Not restored"},
+	{"conflict", "Conflicts, left unchanged"},
+}
 
 type installer struct {
 	target    string
@@ -295,6 +302,11 @@ func (in *installer) write(rel, text string, mode fs.FileMode) error {
 	if err := os.MkdirAll(filepath.Dir(full), 0o777); err != nil {
 		return err
 	}
+	// Keep CRLF line endings in a file that has them, since the text was
+	// read with \n endings.
+	if old, err := os.ReadFile(full); err == nil && bytes.Contains(old, []byte("\r\n")) {
+		text = strings.ReplaceAll(text, "\n", "\r\n")
+	}
 	if err := os.WriteFile(full, []byte(text), 0o666); err != nil {
 		return err
 	}
@@ -342,6 +354,8 @@ func (in *installer) managedPaths() map[string]bool {
 func (in *installer) seed(rel, text string, mode fs.FileMode) error {
 	if _, err := os.Stat(in.path(rel)); err == nil {
 		return nil
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return err
 	}
 	in.add("created", rel)
 	return in.write(rel, text, mode)
@@ -392,17 +406,13 @@ func (in *installer) managed(rel, text string, mode fs.FileMode) error {
 	}
 	in.add("conflict", rel)
 	if in.showDiff {
-		return in.diff(rel, text)
+		return in.diff(rel, current, text)
 	}
 	return nil
 }
 
-// diff prints the changes from the repository's version of rel to text.
-func (in *installer) diff(rel, text string) error {
-	current, err := os.ReadFile(in.path(rel))
-	if err != nil {
-		return err
-	}
+// diff prints the changes from current, the repository's version of rel, to text.
+func (in *installer) diff(rel, current, text string) error {
 	dir, err := os.MkdirTemp("", "docs-bootstrap-diff-")
 	if err != nil {
 		return err
@@ -410,7 +420,7 @@ func (in *installer) diff(rel, text string) error {
 	defer os.RemoveAll(dir)
 	// Copies under these names make the diff headers say which is which.
 	yours, ours := filepath.Join("yours", rel), filepath.Join("docs-bootstrap", rel)
-	for name, data := range map[string][]byte{yours: current, ours: []byte(text)} {
+	for name, data := range map[string][]byte{yours: []byte(current), ours: []byte(text)} {
 		full := filepath.Join(dir, name)
 		if err := os.MkdirAll(filepath.Dir(full), 0o777); err != nil {
 			return err
@@ -420,14 +430,32 @@ func (in *installer) diff(rel, text string) error {
 		}
 	}
 	fmt.Fprintln(in.out)
-	cmd := exec.Command("git", "--no-pager", "diff", "--no-index", "--no-ext-diff", "--no-prefix", "--", yours, ours)
+	// --color=auto overrides a color.ui=always setting, which would put
+	// escape codes in redirected output.
+	cmd := exec.Command("git", "--no-pager", "diff", "--no-index", "--no-ext-diff", "--no-prefix", "--color=auto", "--", yours, ours)
 	cmd.Dir = dir
-	cmd.Stdout, cmd.Stderr = in.out, in.out
+	var stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = in.out, &stderr
 	// git diff exits with status 1 when the files differ.
 	if err := cmd.Run(); err != nil && !(errors.As(err, new(*exec.ExitError)) && cmd.ProcessState.ExitCode() == 1) {
-		return fmt.Errorf("git diff %s: %w", rel, err)
+		return fmt.Errorf("git diff %s: %w: %s", rel, err, strings.TrimSpace(stderr.String()))
 	}
 	return nil
+}
+
+// markersPaired reports whether each begin marker in text is followed by an
+// end marker before the next begin marker.
+func markersPaired(text string) bool {
+	for {
+		b, e := strings.Index(text, blockBegin), strings.Index(text, blockEnd)
+		if b < 0 || e < 0 {
+			return b < 0 && e < 0
+		}
+		if e < b || strings.Contains(text[b+len(blockBegin):e], blockBegin) {
+			return false
+		}
+		text = text[e+len(blockEnd):]
+	}
 }
 
 func (in *installer) mergeAgentsMD(rel, block string) error {
@@ -439,6 +467,11 @@ func (in *installer) mergeAgentsMD(rel, block string) error {
 	if !exists {
 		in.add("created", rel)
 		return in.write(rel, fmt.Sprintf("# %s\n\n%s\n", in.vars["PROJECT"], block), 0)
+	}
+	// Replacing between unpaired markers would delete the text between them.
+	if !markersPaired(current) {
+		in.add("conflict", rel+" (a docs-bootstrap:begin or :end comment is missing; fix it by hand)")
+		return nil
 	}
 	var result string
 	if agentsBlock.MatchString(current) {
@@ -502,7 +535,10 @@ func (in *installer) mergeSettings(rel, text string) error {
 		return fmt.Errorf("template %s: %w", rel, err)
 	}
 	ours := index(get(get(template, "hooks"), "PostToolUse"), 0)
-	command := get(index(get(ours, "hooks"), 0), "command")
+	command, ok := get(index(get(ours, "hooks"), 0), "command").(string)
+	if !ok {
+		return fmt.Errorf("template %s: hooks.PostToolUse[0].hooks[0].command is missing", rel)
+	}
 	current, exists, err := readIfExists(in.path(rel))
 	if err != nil {
 		return err
@@ -696,7 +732,12 @@ func resolveOptions(f flags, target string, saved options) (options, error) {
 	if f.audience != nil {
 		opts.Audience = nonEmpty(*f.audience)
 	}
-	opts.Style = first(f.style, saved.Style, styleName(opts.Name), "House")
+	derived := styleName(opts.Name)
+	if !validStyle.MatchString(derived) {
+		// Such as a name that starts with a digit.
+		derived = "House"
+	}
+	opts.Style = first(f.style, saved.Style, derived)
 	if !validStyle.MatchString(opts.Style) {
 		return opts, usageError{errors.New("--style must be letters and digits, starting with a letter")}
 	}
@@ -721,6 +762,21 @@ func (o optionalString) String() string {
 	return **o.value
 }
 func (o optionalString) Set(v string) error { *o.value = &v; return nil }
+
+// takesValue reports whether arg is a flag, such as --name, whose value is
+// the next argument.
+func takesValue(set *flag.FlagSet, arg string) bool {
+	name := strings.TrimLeft(arg, "-")
+	if !strings.HasPrefix(arg, "-") || strings.Contains(name, "=") {
+		return false
+	}
+	f := set.Lookup(name)
+	if f == nil {
+		return false
+	}
+	b, ok := f.Value.(interface{ IsBoolFlag() bool })
+	return !ok || !b.IsBoolFlag()
+}
 
 type stringList []string
 
@@ -779,8 +835,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		if set.NArg() == 0 {
 			break
 		}
-		// Everything after "--" is positional.
-		if parsed := len(rest) - set.NArg(); parsed > 0 && rest[parsed-1] == "--" {
+		// Everything after "--" is positional, unless the "--" was a flag's value.
+		if parsed := len(rest) - set.NArg(); parsed > 0 && rest[parsed-1] == "--" && !(parsed > 1 && takesValue(set, rest[parsed-2])) {
 			positional = append(positional, set.Args()...)
 			break
 		}
@@ -864,17 +920,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return fail(1, "%v", err)
 	}
 	report := in.report
-	labels := map[string]string{
-		"created":  "Created",
-		"updated":  "Updated",
-		"merged":   "Merged into",
-		"kept":     "Not restored",
-		"conflict": "Conflicts, left unchanged",
-	}
-	for _, key := range reportKeys {
-		if len(report[key]) > 0 {
-			fmt.Fprintf(stdout, "\n%s (%d):\n", labels[key], len(report[key]))
-			for _, rel := range report[key] {
+	for _, section := range reportSections {
+		if entries := report[section.key]; len(entries) > 0 {
+			fmt.Fprintf(stdout, "\n%s (%d):\n", section.label, len(entries))
+			for _, rel := range entries {
 				fmt.Fprintf(stdout, "  %s\n", rel)
 			}
 		}

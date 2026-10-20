@@ -22,7 +22,7 @@ The command includes a copy of the template from when you installed it. To chang
 | --- | --- | --- |
 | `--profile` | `software` | The rule set: `software` or `infrastructure`. See [Profiles](#profiles). |
 | `--name` | The directory name, with hyphens and underscores as spaces and the first letter capitalized | Project name, used in titles such as `NAME documentation`. Required if `TARGET` is a root directory. |
-| `--style` | The words of the project name, each capitalized, without spaces or punctuation | Name of the local Vale style and vocabulary, such as `AcmeApi`. Letters and digits only. |
+| `--style` | The words of the project name, each capitalized, without spaces or punctuation, or `House` if that doesn't start with a letter | Name of the local Vale style and vocabulary, such as `AcmeApi`. Letters and digits only. |
 | `--noun` | `project` or `environment`, from the profile | What the docs describe, as in `this NOUN`. |
 | `--audience` | A sentence from the profile | Who the docs are for, completing `Write for …`. |
 | `--dry-run` | Off | Prints what would change, without writing. |
@@ -58,8 +58,10 @@ How each merged file changes:
 
 - **`.gitignore`:** the installer adds the lines from the template that aren't already in the file, each with any comment directly before it in the template.
 - **`.claude/settings.json`:** the installer adds the documentation hook to `hooks.PostToolUse`, and keeps every other setting and hook.
-- **`AGENTS.md`:** the installer adds a documentation section between `<!-- docs-bootstrap:begin -->` and `<!-- docs-bootstrap:end -->`, and replaces that section on later runs. Text outside it is yours.
+- **`AGENTS.md`:** the installer adds a documentation section between `<!-- docs-bootstrap:begin -->` and `<!-- docs-bootstrap:end -->`, and replaces that section on later runs. Text outside it is yours. If either comment is missing, the installer reports a conflict and leaves the file unchanged.
 - **`CLAUDE.md`:** if it's missing, the installer creates it as a link to `AGENTS.md`. If it's a file, the installer adds an `@AGENTS.md` line, which makes Claude Code read `AGENTS.md`.
+
+The installer keeps the line endings of each file it changes, so a file with CRLF line endings keeps them.
 
 ## Manifest
 
