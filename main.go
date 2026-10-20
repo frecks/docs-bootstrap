@@ -744,6 +744,7 @@ Options:
   --diff           print a diff for each conflicting file
   --replace PATH   take the new version of this managed file, replacing local
                    edits (repeatable)
+  --version        print the version and exit
 `
 
 // run runs the installer with the given arguments, and returns the exit status.
@@ -762,6 +763,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	showDiff := set.Bool("diff", false, "")
 	set.Var(&replace, "replace", "")
 	templateDir := set.String("template-dir", "", "")
+	showVersion := set.Bool("version", false, "")
 
 	// Options may come before or after TARGET.
 	var positional []string
@@ -783,6 +785,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 			break
 		}
 		positional = append(positional, set.Arg(0))
+	}
+	if *showVersion {
+		fmt.Fprintf(stdout, "docs-bootstrap %s\n", version)
+		return 0
 	}
 	fail := func(code int, format string, a ...any) int {
 		fmt.Fprintf(stderr, "error: "+format+"\n", a...)

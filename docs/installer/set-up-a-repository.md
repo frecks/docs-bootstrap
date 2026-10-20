@@ -8,7 +8,7 @@ Install the documentation system into a new or existing repository. The reposito
 
 ## Before you begin
 
-- Go 1.22 or later, to run the installer, and Git, for `--diff`.
+- The `docs-bootstrap` command. See [Install docs-bootstrap](install-docs-bootstrap.md).
 - A clean working tree in the target repository, if it already exists, so you can review the changes with `git diff`.
 - The tools the checks need, which are listed in [Check documentation](../documentation/check-documentation.md#before-you-begin).
 
@@ -21,10 +21,10 @@ Pick the profile that matches what the repository describes. See [Options](optio
 
 ## Install
 
-1. Preview the changes. From the `docs-bootstrap` repository, run:
+1. Preview the changes:
 
    ```bash
-   go run . ../my-repo --profile software --dry-run
+   docs-bootstrap ../my-repo --profile software --dry-run
    ```
 
    Replace `../my-repo` with the path to your repository. The output lists each file the installer would create, merge, or leave alone.
@@ -32,7 +32,7 @@ Pick the profile that matches what the repository describes. See [Options](optio
 1. Run the same command without `--dry-run`:
 
    ```bash
-   go run . ../my-repo --profile software
+   docs-bootstrap ../my-repo --profile software
    ```
 
    If the directory doesn't exist, the installer creates it.
@@ -40,13 +40,13 @@ Pick the profile that matches what the repository describes. See [Options](optio
 1. If the output lists **Conflicts**, your repository already has a file the installer manages, such as `.vale.ini`. The installer keeps your file. Compare the two versions:
 
    ```bash
-   go run . ../my-repo --diff
+   docs-bootstrap ../my-repo --diff
    ```
 
    Then either merge the changes you want into your file by hand, or take the new version:
 
    ```bash
-   go run . ../my-repo --replace .vale.ini
+   docs-bootstrap ../my-repo --replace .vale.ini
    ```
 
 1. If your `AGENTS.md` already described your documentation, delete that description. The installer added its own, between the `docs-bootstrap:begin` and `docs-bootstrap:end` comments, and keeps it up to date.
@@ -72,6 +72,7 @@ A fresh install has no errors. In an existing repository with pages in `docs/`, 
 
 ## Related
 
+- [Install docs-bootstrap](install-docs-bootstrap.md)
 - [Upgrade a repository](upgrade-a-repository.md)
 - [Options](options.md)
 - [Why the installer manages, seeds, or merges each file](why-files-are-managed-seeded-or-merged.md)

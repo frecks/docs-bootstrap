@@ -9,12 +9,12 @@ This page lists the options and profiles of the installer, and how it treats eac
 ## Command
 
 ```bash
-go run . TARGET [OPTIONS]
+docs-bootstrap TARGET [OPTIONS]
 ```
 
-Run it from the `docs-bootstrap` repository. `TARGET` is the repository to set up. The installer creates the directory if it doesn't exist. Options can come before or after `TARGET`.
+`TARGET` is the repository to set up. The installer creates the directory if it doesn't exist. Options can come before or after `TARGET`. To install the command, see [Install docs-bootstrap](install-docs-bootstrap.md).
 
-The installer includes a copy of the template when you build it. To run it from any directory, install it from the `docs-bootstrap` repository with `go install .`, which puts it in `$(go env GOPATH)/bin`. With that directory on your `PATH`, run `docs-bootstrap TARGET [OPTIONS]`. Reinstall it after the template changes.
+The command includes a copy of the template from when you installed it. To change the template, run the installer from the `docs-bootstrap` repository with `go run .` instead, as described in [Change the template](../template/change-the-template.md).
 
 ## Options
 
@@ -28,6 +28,7 @@ The installer includes a copy of the template when you build it. To run it from 
 | `--dry-run` | Off | Prints what would change, without writing. |
 | `--diff` | Off | Prints a diff for each file in conflict, using `git diff`, with your version as `yours/` and the new version as `docs-bootstrap/`. Needs Git. |
 | `--replace PATH` | None | Takes the new version of a managed file, replacing local edits. Repeat it for more files. |
+| `--version` | Off | Prints the version and exits. Doesn't need a `TARGET`. |
 
 The installer saves `--profile`, `--name`, and `--style` in `.docs-bootstrap.json`, and `--noun` and `--audience` only if you give them. A later run uses the saved values, unless you give the option again. Without a saved value, `--noun` and `--audience` follow the profile, so they change if you change the profile. To go back to the default, give an empty value, such as `--audience ""`.
 
@@ -72,5 +73,6 @@ How each merged file changes:
 
 ## Related
 
+- [Install docs-bootstrap](install-docs-bootstrap.md)
 - [Set up a repository](set-up-a-repository.md)
 - [Template syntax](../template/template-syntax.md)

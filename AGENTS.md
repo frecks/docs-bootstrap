@@ -2,7 +2,7 @@
 
 The installer in `main.go` installs a documentation system into other repositories. The system itself is in `template/`, and this repository uses it too.
 
-- Change the system in `template/`, not in this repository's installed copy. Then run `go run . .` to upgrade this repository from it. See `docs/template/change-the-template.md`.
+- Change the system in `template/`, not in this repository's installed copy. Then run `go run . .` to upgrade this repository from it. Don't use an installed `docs-bootstrap` for this: it has the template from when it was installed. See `docs/template/change-the-template.md`.
 - Run the tests after any change to the installer or `template/`:
 
   ```bash

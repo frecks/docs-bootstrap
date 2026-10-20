@@ -220,6 +220,13 @@ func TestNamesKeepTheirCase(t *testing.T) {
 	}
 }
 
+func TestVersion(t *testing.T) {
+	var out bytes.Buffer
+	if code := run([]string{"--version"}, &out, &out); code != 0 || out.String() != "docs-bootstrap "+version+"\n" {
+		t.Errorf("exit %d: %q", code, out.String())
+	}
+}
+
 func TestCommandLineErrorsExitTwo(t *testing.T) {
 	repo, _ := sampleRepo(t)
 	for _, args := range [][]string{{"--style", "1x"}, {"--replace", "docs/README.md"}, {"--profile", "x"}, {"--bogus"}} {

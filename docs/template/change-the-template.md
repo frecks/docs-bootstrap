@@ -4,7 +4,7 @@ type: how-to
 
 # Change the template
 
-Change the documentation system that the installer sets up, such as a style rule, a skill, or a lint check. Every repository gets the change the next time someone upgrades it.
+Change the documentation system that the installer sets up, such as a style rule, a skill, or a lint check. Every repository gets the change the next time someone updates `docs-bootstrap` and upgrades the repository.
 
 ## Before you begin
 
@@ -29,6 +29,8 @@ Change the documentation system that the installer sets up, such as a style rule
    go run . .
    scripts/docs-lint.sh
    ```
+
+   Use `go run .` here and in the verify steps, not an installed `docs-bootstrap`. `go run .` builds from your working tree, while an installed command has the template from when you installed it.
 
 1. If a repository's files would change on upgrade, increase `version` in `main.go`. Use a new major version when an upgrade needs a manual step, such as moving pages.
 
