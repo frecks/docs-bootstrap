@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	version      = "0.4.0"
+	version      = "0.4.1"
 	manifestName = ".docs-bootstrap.json"
 	blockBegin   = "<!-- docs-bootstrap:begin -->"
 	blockEnd     = "<!-- docs-bootstrap:end -->"

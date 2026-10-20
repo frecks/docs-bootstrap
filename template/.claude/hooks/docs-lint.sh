@@ -9,14 +9,23 @@ set -uo pipefail
 # The hook reads its input with jq; without it, there's nothing to check.
 command -v jq > /dev/null || exit 0
 
-root="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 file="$(jq -r '.tool_input.file_path // empty')"
+[ -f "$file" ] || exit 0
+file="$(realpath -- "$file")"
+
+# Check the repository that holds the edited file: the nearest directory above
+# it with scripts/docs-lint.sh and docs/. In a git worktree, that's the
+# worktree, while $CLAUDE_PROJECT_DIR can name the main checkout.
+root="$(dirname "$file")"
+until [ -x "$root/scripts/docs-lint.sh" ] && [ -d "$root/docs" ]; do
+  [ "$root" = / ] && exit 0
+  root="$(dirname "$root")"
+done
 
 case "$file" in
   "$root"/docs/*.md) ;;
   *) exit 0 ;;
 esac
-[ -f "$file" ] || exit 0
 
 context() {
   jq -n --arg ctx "$1" '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $ctx}}'

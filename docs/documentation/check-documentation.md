@@ -17,6 +17,7 @@ On your workstation, install these tools:
 To install Vale 3.24.0 to `~/.local/bin`, run:
 
 ```bash
+mkdir -p ~/.local/bin
 curl -sL https://github.com/errata-ai/vale/releases/download/v3.24.0/vale_3.24.0_Linux_64-bit.tar.gz | tar xz -C ~/.local/bin vale
 ```
 
@@ -47,7 +48,7 @@ The script runs four checks, and prints a section for each:
 
 Fix every error. Fix warnings and suggestions unless you've decided they don't apply.
 
-If a check prints `SKIPPED`, its tool isn't installed, or couldn't run, such as when `npm` can't download markdownlint. Install the tool or fix the network problem, then run the script again. The script exits with status 1 when a check reports an error, 2 when a page you named doesn't exist, and 3 when no check reports an error but a check was skipped.
+If a check prints `SKIPPED`, its tool isn't installed, isn't on `PATH`, or couldn't run, such as when `npm` can't download markdownlint. Install the tool or fix the network problem, then run the script again. The script exits with status 1 when a check reports an error, 2 when a page you named doesn't exist, and 3 when no check reports an error but a check was skipped.
 
 ## Verify
 

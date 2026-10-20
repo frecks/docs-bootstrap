@@ -10,8 +10,18 @@ set -uo pipefail
 # block every stop. Skip the check instead.
 command -v jq > /dev/null || exit 0
 
-root="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 input="$(cat)"
+
+# Check the repository the session works in: the nearest directory at or above
+# its working directory with scripts/docs-lint.sh and docs/. In a git
+# worktree, that's the worktree, while $CLAUDE_PROJECT_DIR can name the main
+# checkout.
+root="$(jq -r '.cwd // empty' <<< "$input")"
+root="$(realpath -- "${root:-${CLAUDE_PROJECT_DIR:-$PWD}}" 2> /dev/null)" || exit 0
+until [ -x "$root/scripts/docs-lint.sh" ] && [ -d "$root/docs" ]; do
+  [ "$root" = / ] && exit 0
+  root="$(dirname "$root")"
+done
 
 # After a blocked stop, let Claude finish rather than block again.
 if [ "$(jq -r '.stop_hook_active // false' <<< "$input")" = "true" ]; then
