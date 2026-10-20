@@ -9,15 +9,17 @@
     ".agents/skills/docs-write/SKILL.md": "486775bf864a3ec4abf27daebf79892266762134a13d628d9a1c5f859188373f",
     ".claude/hooks/docs-lint-stop.sh": "59db3b8c39ee9e22ad36722283920f008e494b762ae306d372a74cda358a9841",
     ".claude/hooks/docs-lint.sh": "bd13017ef749095c10dcbe7612055036d889d1552f1a490b3917da0a5b1658af",
-    ".markdownlint-cli2.jsonc": "ce4bd6aa2b815b7533e626c4b77342f8e610a4896a2494a88bc0f8ad074b3600",
+    ".markdownlint-cli2.jsonc": "6f9fa78f8fc8cfa92bd1822f6b33d9cd44dc97533e35896f522ba1cc7fae3712",
+    ".markdownlint/package-lock.json": "cfaacdba09ef5e9019d5188808f0a4080c9c9407fe90396833b13be719911484",
+    ".markdownlint/package.json": "d9a935c91c40db1e9682527f41303696adf3cf6d0736f0216dab2ac29b965aac",
     ".vale.ini": "6f1cb18c0e66c81cd32b1a261c0b4c24fc83688533e3340bf340bab37ddb79c2",
     ".vale/styles/DocsBootstrap/DraftMarkers.yml": "b0c66a21b76b54bcd2d51f1d56af4c31539d4c7fd1c51a6a6ee48b582d2195c0",
     ".vale/styles/DocsBootstrap/Minimizing.yml": "e31a3bd4c6a7a02ee0106d8f04cbfb2d95235e65f46ab09a8cc3851314d2b2a3",
     ".vale/styles/DocsBootstrap/Secrets.yml": "5232bced6bfd3d5586e2135c99a0d663048fc64be8454284137c4f250e8b0051",
     ".vale/styles/config/vocabularies/DocsBootstrap/accept.txt": "f43c61f97aa0d133891976d41d5e62b444d25dddb83712bed0d4eda77977a758",
     ".vale/styles/config/vocabularies/DocsBootstrap/reject.txt": "f837eafa9247deb1bf38eefe97f50c8a7e628f4d7b9b986a1b8b5880d3f80a1a",
-    "docs/documentation/check-documentation.md": "e1f82400a04415e0baa29a5076a6b5bb4f51843dd84179b845ac6469769bc45c",
-    "docs/documentation/why-the-documentation-system-works-this-way.md": "8e87ed855058cf3f9c2b70f4da69050cb1ec8c682453b7c57f0354816951bc81",
+    "docs/documentation/check-documentation.md": "95524984704581ad80fdbbd647679e5e7865f6510a3fb3218cd9c0d863acd1f8",
+    "docs/documentation/why-the-documentation-system-works-this-way.md": "fe1f2a94a43197973c613d92ce967623187f2242cf75e9f6f58c01e8724a60a6",
     "docs/standards/README.md": "eca6bb09e89a95b60c7b90da101f7cd0532905e0ef89a0a812ba86e795ab9178",
     "docs/standards/review-checklist.md": "7700267f42ec06b0576957c6bfbeb0ea2e1809ac901f883d382324ff59a788a4",
     "docs/standards/structure.md": "1d59ba93c937bd2c27c233087ac756d24bbeef3790615bb6cc9422cd7e0b9d84",
@@ -26,6 +28,6 @@
     "docs/standards/templates/how-to.md": "346dc75b599e6d7984efbe0238f1d6c80496d2c3d898b01c89e5abcd73a9ab45",
     "docs/standards/templates/reference.md": "129074449fc37b05bcd47111e66be022e652605246cf1c20b9d7ce80f73c73e0",
     "docs/standards/templates/tutorial.md": "4dbb5c59bb243a4580deac1734999403d3ce7e22f07443954b7f740ba8bc81fc",
-    "scripts/docs-lint.sh": "d721fce6bbf27107c1418e73b9314f6b8d70ad04ada5a646dd3e5a57ffaae0dd"
+    "scripts/docs-lint.sh": "0d5c3a8b01f335af229d20051555a0b4f84c8ab25a616616d34e529bc223c13f"
   }
 }

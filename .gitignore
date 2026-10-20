@@ -3,3 +3,6 @@
 
 # Built by `go build`.
 /docs-bootstrap
+
+# Installed by scripts/docs-lint.sh from .markdownlint/package-lock.json.
+.markdownlint/node_modules/

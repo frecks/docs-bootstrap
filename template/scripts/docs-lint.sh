@@ -2,8 +2,13 @@
 # Check documentation against docs/standards.
 #
 # Usage: scripts/docs-lint.sh [--with-referrers] [FILE...]
+#        scripts/docs-lint.sh --install
 # With no FILE, checks every Markdown file in docs/. FILE paths are relative to
 # the current directory.
+#
+# --install installs the tools the checks use, and exits: Vale's Google style,
+# and the markdownlint packages locked in .markdownlint/package-lock.json. A
+# check installs them itself when they're missing or out of date.
 #
 # --with-referrers also runs markdownlint on the pages in docs/ that mention a
 # FILE's name, so a link to a FILE that an edit broke, such as an anchor to a
@@ -23,10 +28,52 @@
 
 set -uo pipefail
 
-MARKDOWNLINT_VERSION=0.23.3
-RELATIVE_LINKS_VERSION=5.1.4
-
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+markdownlint=.markdownlint/node_modules/.bin/markdownlint-cli2
+
+# install_vale_styles downloads the Google style pinned in .vale.ini, if it's
+# missing. It prints SKIPPED and returns 1 when Vale can't run.
+install_vale_styles() {
+  if ! command -v vale > /dev/null; then
+    echo "SKIPPED: vale is not installed. See docs/documentation/check-documentation.md."
+    return 1
+  fi
+  if [ ! -d .vale/styles/Google ] && ! vale sync > /dev/null; then
+    echo "SKIPPED: vale sync failed, so Vale can't run."
+    return 1
+  fi
+}
+
+# install_markdownlint installs the packages locked in
+# .markdownlint/package-lock.json, when they're missing or the lockfile has
+# changed since they were installed. npm ci checks each package against its
+# integrity hash, and --ignore-scripts runs no package code while installing.
+# It prints SKIPPED and returns 1 when markdownlint can't run.
+install_markdownlint() {
+  local stamp=.markdownlint/node_modules/.docs-lint-lock
+  if [ -x "$markdownlint" ] && cmp -s .markdownlint/package-lock.json "$stamp"; then
+    return 0
+  fi
+  if ! command -v npm > /dev/null; then
+    echo "SKIPPED: npm is not installed, so markdownlint can't be installed. See docs/documentation/check-documentation.md."
+    return 1
+  fi
+  local out
+  if ! out="$(npm ci --prefix .markdownlint --ignore-scripts --no-audit --no-fund --loglevel=error 2>&1)"; then
+    echo "$out"
+    echo "SKIPPED: npm ci failed, so markdownlint can't run."
+    return 1
+  fi
+  cp .markdownlint/package-lock.json "$stamp"
+}
+
+if [ "${1:-}" = "--install" ]; then
+  cd "$root" || exit 2
+  ok=0
+  install_vale_styles || ok=3
+  install_markdownlint || ok=3
+  exit "$ok"
+fi
 
 with_referrers=0
 if [ "${1:-}" = "--with-referrers" ]; then
@@ -111,11 +158,7 @@ done
 if [ "$template_ok" -eq 1 ]; then echo "OK"; else echo "Delete the Template comments above."; status=1; fi
 
 echo "== Vale"
-if ! command -v vale > /dev/null; then
-  echo "SKIPPED: vale is not installed. See docs/documentation/check-documentation.md."
-  skipped=1
-elif [ ! -d .vale/styles/Google ] && ! vale sync > /dev/null; then
-  echo "SKIPPED: vale sync failed, so Vale can't run."
+if ! install_vale_styles; then
   skipped=1
 else
   # Vale exits 1 when it reports errors, and 2 when it can't run.
@@ -131,25 +174,19 @@ else
 fi
 
 echo "== markdownlint"
-if command -v npx > /dev/null; then
-  # The config's globs are ignored when files are passed; ":" prefixes make
-  # these literal paths. The relative-links rule is a separate package.
-  if out="$(npx --yes --package "markdownlint-cli2@${MARKDOWNLINT_VERSION}" \
-    --package "markdownlint-rule-relative-links@${RELATIVE_LINKS_VERSION}" \
-    markdownlint-cli2 --no-globs "${lint_files[@]/#/:}" 2>&1)"; then
-    echo "OK"
-  elif grep -q '^Summary:' <<< "$out"; then
-    grep -v -E '^(markdownlint-cli2 v|Finding:|Linting:|Summary:)' <<< "$out"
-    status=1
-  else
-    # No summary means markdownlint didn't run, such as when npx can't
-    # download it.
-    echo "$out"
-    echo "SKIPPED: markdownlint couldn't run."
-    skipped=1
-  fi
+if ! install_markdownlint; then
+  skipped=1
+# The config's globs are ignored when files are passed; ":" prefixes make
+# these literal paths.
+elif out="$("$markdownlint" --no-globs "${lint_files[@]/#/:}" 2>&1)"; then
+  echo "OK"
+elif grep -q '^Summary:' <<< "$out"; then
+  grep -v -E '^(markdownlint-cli2 v|Finding:|Linting:|Summary:)' <<< "$out"
+  status=1
 else
-  echo "SKIPPED: npx is not installed, so markdownlint can't run."
+  # No summary means markdownlint didn't run.
+  echo "$out"
+  echo "SKIPPED: markdownlint couldn't run."
   skipped=1
 fi
 

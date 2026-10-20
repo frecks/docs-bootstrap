@@ -62,7 +62,7 @@ It turns off the line-length rule, so each paragraph is one line and editors wra
 
 markdownlint also checks links, through the [markdownlint-rule-relative-links](https://github.com/theoludwig/markdownlint-rule-relative-links) rule: each relative link must point to a file that exists, and an anchor must match a heading in that file. A separate link checker would add a dependency, such as Python, and wouldn't check anchors in other pages.
 
-`scripts/docs-lint.sh` pins markdownlint-cli2 and the link rule to versions and runs them through `npx`, so the check needs no separate install beyond Node.js.
+`.markdownlint/package-lock.json` pins markdownlint-cli2, the link rule, and every package they depend on, each with an integrity hash. `scripts/docs-lint.sh` installs them once with `npm ci --ignore-scripts`, which checks each hash and runs no package code while installing, and installs them again only when the lockfile changes. Each check then runs the installed copy. Running packages through `npx` instead would resolve them from the registry on every run, with only the top-level versions pinned, and would add about half a second to each check.
 
 ### One script runs every check
 
@@ -75,7 +75,7 @@ Two hooks in `.claude/settings.json` run the script for agents in Claude Code:
 - **After each edit:** a `PostToolUse` hook checks a Markdown file in `docs/` after each `Edit`, `MultiEdit`, or `Write`. It also runs markdownlint on the pages that mention the file's name, so a link that the edit broke elsewhere, such as an anchor to a renamed heading, is caught too. Checking only those pages keeps each edit fast however large `docs/` grows.
 - **Before the agent finishes:** a `Stop` hook checks every page in `docs/`, if any page there has uncommitted changes. This catches what the edit hook can't see, such as a page that a command moved or deleted. It blocks the agent once, so it fixes the errors, and then lets it finish.
 
-Errors go back to the agent to fix before it moves on. Warnings and suggestions go to the agent as context, without blocking. If a check can't run, such as when Vale isn't installed or npx can't download markdownlint, the hooks ask the agent to tell the user, and don't block. The hooks catch problems while the agent is still working, instead of in review.
+Errors go back to the agent to fix before it moves on. Warnings and suggestions go to the agent as context, without blocking. If a check can't run, such as when Vale isn't installed or npm can't download markdownlint, the hooks ask the agent to tell the user, and don't block. The hooks catch problems while the agent is still working, instead of in review.
 
 ### A bootstrap tool installs and upgrades the system
 
@@ -102,7 +102,7 @@ It also has costs and limits:
 
 - Some standards need judgment that no linter has, such as keeping one type per page, naming the host before a procedure, or giving the reason for a design choice. Only [review](../standards/review-checklist.md) catches those.
 - The Google Vale package has its own maintainers, separate from the guide, and can lag behind it. Updating the package is a manual task. See [Track the Google style guide](../standards/README.md#track-the-google-style-guide).
-- The checks need Vale, Node.js 22 or later, and jq on the workstation. When a check can't run, the hooks don't block, so an agent can finish without that check.
+- The checks need Vale, Node.js 22 or later with npm, and jq on the workstation. The first check in a new clone needs the network, to install Vale's Google style and the markdownlint packages. When a check can't run, the hooks don't block, so an agent can finish without that check.
 - Spell checking is off. Vale still flags a few British spellings, such as `colour` and `-ise` endings, and product names with the wrong capitalization, but no other misspellings.
 
 Revisit a rule when reviewers keep flagging the same problem. The standards say to turn a problem flagged more than twice into a Vale rule, so that over time tools enforce more of the standard than review does.

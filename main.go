@@ -588,6 +588,21 @@ func (in *installer) mergeSettings(rel, text string) error {
 	return in.write(rel, out, 0)
 }
 
+// installTools installs the lint tools with the repository's own
+// scripts/docs-lint.sh, so the first check doesn't have to. A failure isn't
+// fatal: the script tries again when it next runs.
+func installTools(target string, stdout io.Writer) {
+	cmd := exec.Command(filepath.Join(target, "scripts", "docs-lint.sh"), "--install")
+	cmd.Dir = target
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Fprintf(stdout, "\nscripts/docs-lint.sh --install couldn't install every lint tool:\n%s\nIt tries again when it next runs.\n",
+			strings.TrimSpace(string(out)))
+		return
+	}
+	fmt.Fprint(stdout, "\nInstalled the lint tools with scripts/docs-lint.sh --install.\n")
+}
+
 // hasCommand reports whether a hook in entries runs command.
 func hasCommand(entries []any, command any) bool {
 	for _, entry := range entries {
@@ -749,6 +764,9 @@ Options:
   --diff           print a diff for each conflicting file
   --replace PATH   take the new version of this managed or seed file,
                    replacing local edits (repeatable)
+  --skip-tools     don't install the lint tools: Vale's Google style and the
+                   markdownlint packages. scripts/docs-lint.sh installs them
+                   when it first runs.
   --version        print the version and exit
 `
 
@@ -761,6 +779,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	name := set.String("name", "", "")
 	dryRun := set.Bool("dry-run", false, "")
 	showDiff := set.Bool("diff", false, "")
+	skipTools := set.Bool("skip-tools", false, "")
 	set.Var(&replace, "replace", "")
 	templateDir := set.String("template-dir", "", "")
 	showVersion := set.Bool("version", false, "")
@@ -882,6 +901,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if len(report["conflict"]) > 0 {
 		fmt.Fprint(stdout, "\nYour version of each conflicting file is kept. To compare, run again with --diff. "+
 			"To take the new version, run again with --replace PATH.\n")
+	}
+	if !*dryRun && !*skipTools {
+		installTools(target, stdout)
 	}
 	fmt.Fprint(stdout, "\nNext: run scripts/docs-lint.sh in the repository. See docs/documentation/check-documentation.md there.\n")
 	if len(report["conflict"]) > 0 {

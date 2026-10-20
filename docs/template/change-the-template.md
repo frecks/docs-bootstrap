@@ -9,13 +9,21 @@ Change the documentation system that the installer sets up, such as a style rule
 ## Before you begin
 
 - Go 1.22 or later.
-- Vale, Node.js 22 or later, and `jq`, to run the lint checks on this repository. See [Check documentation](../documentation/check-documentation.md#before-you-begin).
+- Vale, Node.js 22 or later with `npm`, and `jq`, to run the lint checks on this repository. See [Check documentation](../documentation/check-documentation.md#before-you-begin).
 
 ## Make the change
 
 1. Edit the files in `template/`. Use [placeholders](template-syntax.md) wherever the text depends on the project. Write each rule so that it works for any repository. If a rule applies only in some cases, such as to commands that run on another host, say so in the rule. The installer makes a file executable if it starts with `#!`, and not otherwise.
 
 1. To add a file that a repository should own after the first install, add its template path to `seed` in `main.go`. Other new files are managed, and upgrade automatically.
+
+1. To change a markdownlint package version, edit `template/.markdownlint/package.json`, then update the lockfile:
+
+   ```bash
+   npm install --package-lock-only --ignore-scripts --prefix template/.markdownlint
+   ```
+
+   Check that no package in the new lockfile needs an install script, because `scripts/docs-lint.sh` installs with `--ignore-scripts`.
 
 1. Run the tests:
 

@@ -28,4 +28,4 @@ See [Install docs-bootstrap](docs/installer/install-docs-bootstrap.md), [Set up 
 ## Requirements
 
 - Go 1.22 or later, to install `docs-bootstrap`, and Git, for `--diff`.
-- Vale, Node.js 22 or later, and `jq`, in the repositories you set up.
+- Vale, Node.js 22 or later with `npm`, and `jq`, in the repositories you set up.

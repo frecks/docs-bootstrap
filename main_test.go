@@ -11,11 +11,12 @@ import (
 	"testing"
 )
 
-// install runs the installer quietly, and returns its exit status and output.
+// install runs the installer quietly, without installing the lint tools,
+// and returns its exit status and output.
 func install(t *testing.T, target string, args ...string) (int, string) {
 	t.Helper()
 	var out bytes.Buffer
-	code := run(append([]string{target}, args...), &out, &out)
+	code := run(append([]string{"--skip-tools", target}, args...), &out, &out)
 	return code, out.String()
 }
 
@@ -121,8 +122,8 @@ func TestFreshInstallRendersEveryFile(t *testing.T) {
 }
 
 func TestInstallPassesItsOwnStructureChecks(t *testing.T) {
-	if _, err := exec.LookPath("npx"); err != nil {
-		t.Skip("npx isn't installed, so markdownlint and the link check can't run")
+	if _, err := exec.LookPath("npm"); err != nil {
+		t.Skip("npm isn't installed, so markdownlint and the link check can't run")
 	}
 	repo, path := sampleRepo(t)
 	install(t, repo)
@@ -537,13 +538,13 @@ func TestSeedFromBeforeInstallIsKeptUntilReplaced(t *testing.T) {
 	}
 }
 
-// fakeTools returns a PATH where vale is missing and npx fails without
-// running markdownlint, as it does when it can't download a package.
+// fakeTools returns a PATH where vale is missing and npm fails, as it does
+// when it can't download a package.
 func fakeTools(t *testing.T) string {
 	t.Helper()
 	bin := t.TempDir()
-	write(t, filepath.Join(bin, "npx"), "#!/bin/sh\necho 'npm error code ENOTCACHED'\nexit 1\n")
-	if err := os.Chmod(filepath.Join(bin, "npx"), 0o755); err != nil {
+	write(t, filepath.Join(bin, "npm"), "#!/bin/sh\necho 'npm error code ENOTCACHED'\nexit 1\n")
+	if err := os.Chmod(filepath.Join(bin, "npm"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	return bin + ":/usr/bin:/bin"
@@ -634,8 +635,8 @@ func TestLintResolvesFilesFromTheCallersDirectory(t *testing.T) {
 }
 
 func TestLintChecksLinksFromTheRepositoryRoot(t *testing.T) {
-	if _, err := exec.LookPath("npx"); err != nil {
-		t.Skip("npx isn't installed, so markdownlint and the link check can't run")
+	if _, err := exec.LookPath("npm"); err != nil {
+		t.Skip("npm isn't installed, so markdownlint and the link check can't run")
 	}
 	repo, path := sampleRepo(t)
 	install(t, repo)
@@ -650,7 +651,7 @@ func TestLintChecksLinksFromTheRepositoryRoot(t *testing.T) {
 }
 
 func TestEditHookChecksPagesThatLinkToTheEditedPage(t *testing.T) {
-	for _, tool := range []string{"npx", "jq"} {
+	for _, tool := range []string{"npm", "jq"} {
 		if _, err := exec.LookPath(tool); err != nil {
 			t.Skip(tool + " isn't installed")
 		}
@@ -704,5 +705,37 @@ func TestStopHook(t *testing.T) {
 	}
 	if code, out := stop(`{"stop_hook_active": true}`); code != 0 {
 		t.Errorf("second stop: exit %d, want 0:\n%s", code, out)
+	}
+}
+
+func TestInstallInstallsLockedLintTools(t *testing.T) {
+	if _, err := exec.LookPath("npm"); err != nil {
+		t.Skip("npm isn't installed")
+	}
+	repo, path := sampleRepo(t)
+	var out bytes.Buffer
+	if code := run([]string{repo}, &out, &out); code != 0 {
+		t.Fatalf("exit %d:\n%s", code, out.String())
+	}
+	if _, err := os.Stat(path(".markdownlint/node_modules/.bin/markdownlint-cli2")); err != nil {
+		t.Fatalf("markdownlint isn't installed: %v\n%s", err, out.String())
+	}
+
+	// Later runs use the installed packages, so they don't need npm.
+	lint := func() (int, string) {
+		cmd := exec.Command(path("scripts/docs-lint.sh"), path("docs/README.md"))
+		cmd.Env = append(os.Environ(), "PATH="+fakeTools(t))
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+	if code, out := lint(); !strings.Contains(out, "== markdownlint\nOK") {
+		t.Errorf("exit %d, want markdownlint to run without npm:\n%s", code, out)
+	}
+
+	// A changed lockfile, as after an upgrade, means installing again.
+	lock := path(".markdownlint/package-lock.json")
+	write(t, lock, read(t, lock)+"\n")
+	if code, out := lint(); code != 3 || !strings.Contains(out, "npm ci failed") {
+		t.Errorf("exit %d, want 3 after trying npm ci again:\n%s", code, out)
 	}
 }

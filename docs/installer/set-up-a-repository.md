@@ -46,6 +46,8 @@ Install the documentation system into a new or existing repository. The reposito
 
 1. In your repository, add product names that your docs use to `.vale/styles/config/vocabularies/STYLE/accept.txt`, where `STYLE` is the style name the installer printed.
 
+The installer also installs the lint tools, Vale's Google style and the markdownlint packages, by running `scripts/docs-lint.sh --install` in your repository. If that fails, such as when you're offline, the first lint run tries again.
+
 ## Verify
 
 In your repository, run:

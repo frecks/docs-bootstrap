@@ -11,7 +11,7 @@ Run the documentation checks on a page before you finish a change, so it meets t
 On your workstation, install these tools:
 
 - [Vale](https://vale.sh/docs/install) 3.24.0 or later, on your `PATH`.
-- Node.js 22 or later, with `npx`, which downloads markdownlint and its link rule the first time it runs.
+- Node.js 22 or later, with `npm`, which installs markdownlint and its link rule the first time the checks run.
 - `jq`, for the Claude Code hooks.
 
 To install Vale 3.24.0 to `~/.local/bin`, run:
@@ -34,7 +34,7 @@ To check every page in `docs/`, run the script with no arguments:
 scripts/docs-lint.sh
 ```
 
-The first run downloads the pinned Google style for Vale into `.vale/styles/Google/`.
+The first run downloads the pinned Google style for Vale into `.vale/styles/Google/`, and installs the markdownlint packages locked in `.markdownlint/package-lock.json` into `.markdownlint/node_modules/`. Later runs use the installed copies, and install the packages again only when the lockfile changes. To install them without running the checks, run `scripts/docs-lint.sh --install`.
 
 ## Read the results
 
@@ -47,7 +47,7 @@ The script runs four checks, and prints a section for each:
 
 Fix every error. Fix warnings and suggestions unless you've decided they don't apply.
 
-If a check prints `SKIPPED`, its tool isn't installed, or couldn't run, such as when `npx` can't download markdownlint. Install the tool or fix the network problem, then run the script again. When no check reports an error but a check was skipped, the script exits with status 3.
+If a check prints `SKIPPED`, its tool isn't installed, or couldn't run, such as when `npm` can't download markdownlint. Install the tool or fix the network problem, then run the script again. When no check reports an error but a check was skipped, the script exits with status 3.
 
 ## Verify
 
