@@ -15,7 +15,7 @@ Change the documentation system that the installer sets up, such as a style rule
 
 1. Edit the files in `template/`. Use [placeholders](template-syntax.md) wherever the text depends on the project. Write each rule so that it works for any repository. If a rule applies only in some cases, such as to commands that run on another host, say so in the rule. The installer makes a file executable if it starts with `#!`, and not otherwise.
 
-1. To add a file that a repository should own after the first install, add its template path to `seed` in `main.go`. Other new files are managed, and upgrade automatically. When you delete a managed file from `template/`, upgrades remove it from each repository that hasn't edited it.
+1. To add a file that a repository should own after the first install, add its template path to `seed` in `main.go`. Other new files are managed, and upgrade automatically.
 
 1. Run the tests:
 
@@ -32,7 +32,7 @@ Change the documentation system that the installer sets up, such as a style rule
 
    Use `go run .` here and in the verify steps, not an installed `docs-bootstrap`. `go run .` builds from your working tree, while an installed command has the template from when you installed it.
 
-1. If a repository's files would change on upgrade, increase `version` in `main.go`. Use a new major version when an upgrade needs a manual step, such as moving pages.
+1. If a repository's files would change on upgrade, increase `version` in `main.go`. While the version is 0.x, the system isn't stable: increase the minor version for a change that needs a manual step on upgrade, such as moving pages or deleting a file the template no longer has, and the patch version otherwise. The installer doesn't migrate repositories between versions.
 
 ## Verify
 

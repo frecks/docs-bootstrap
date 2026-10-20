@@ -6,6 +6,8 @@ type: how-to
 
 Bring a repository up to date with the current version of the documentation system. Upgrade after a new version of `docs-bootstrap`, such as one with a new rule or a new pinned version of Vale's Google style.
 
+While the version is 0.x, the system isn't stable, and the installer doesn't migrate a repository between versions. A new version can drop or rename files, and the installer leaves the old ones in place. After you upgrade, compare the repository with the new template, and delete or move what's left over by hand.
+
 ## Before you begin
 
 - The repository was set up with the installer, so it has a `.docs-bootstrap.json` file. To set one up, see [Set up a repository](set-up-a-repository.md).
@@ -24,9 +26,8 @@ Bring a repository up to date with the current version of the documentation syst
 1. Read the output:
 
    - **Updated:** files you hadn't edited, now at the new version.
-   - **Removed:** files you hadn't edited that the new version no longer installs.
    - **Conflicts, left unchanged:** files you edited, which the installer kept.
-   - **Not restored:** files you deleted, which the installer leaves deleted, and files you edited that the new version no longer installs, which are now yours to keep or delete.
+   - **Not restored:** files you deleted, which the installer leaves deleted.
 
 1. For each conflict, compare your version with the new one:
 
