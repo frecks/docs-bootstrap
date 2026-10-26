@@ -1,6 +1,6 @@
 extends: existence
 message: "Finish or remove '%s' before publishing."
-link: docs/standards/style-guide.md#drafts
+link: doc-standards/style-guide.md#drafts
 level: error
 scope: raw
 tokens:

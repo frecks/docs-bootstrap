@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	version      = "0.4.2"
+	version      = "0.5.0"
 	manifestName = ".docs-bootstrap.json"
 	blockBegin   = "<!-- docs-bootstrap:begin -->"
 	blockEnd     = "<!-- docs-bootstrap:end -->"
@@ -45,10 +45,11 @@ var embedded embed.FS
 
 // Created once, then owned by the repository. Updated only while unedited.
 var seed = map[string]bool{
-	"docs/README.md": true,
-	"docs/documentation/check-documentation.md":                         true,
-	"docs/documentation/why-the-documentation-system-works-this-way.md": true,
-	".vale/styles/config/vocabularies/{{STYLE}}/accept.txt":             true,
+	"docs/README.md":                                        true,
+	"docs/how-to/README.md":                                 true,
+	"docs/how-to/check-documentation.md":                    true,
+	"doc-standards/rationale.md":                            true,
+	".vale/styles/config/vocabularies/{{STYLE}}/accept.txt": true,
 }
 
 // Merged into existing files instead of copied, by the named installer method.
@@ -887,7 +888,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	if len(unknown) > 0 {
 		sort.Strings(unknown)
-		return fail(2, "--replace takes a managed or seed file, such as docs/standards/style-guide.md: %s", strings.Join(unknown, ", "))
+		return fail(2, "--replace takes a managed or seed file, such as doc-standards/style-guide.md: %s", strings.Join(unknown, ", "))
 	}
 
 	// Create the target only once the command line is known to be valid.
@@ -925,7 +926,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if !*dryRun && !*skipTools {
 		installTools(target, stdout)
 	}
-	fmt.Fprint(stdout, "\nNext: run scripts/docs-lint.sh in the repository. See docs/documentation/check-documentation.md there.\n")
+	fmt.Fprint(stdout, "\nNext: run scripts/docs-lint.sh in the repository. See docs/how-to/check-documentation.md there.\n")
 	if len(report["conflict"]) > 0 {
 		return 1
 	}

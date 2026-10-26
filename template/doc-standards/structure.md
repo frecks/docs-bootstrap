@@ -2,7 +2,7 @@
 
 We use [Diátaxis](https://diataxis.fr/) to decide what each page is for. Every page serves one of four reader needs, and a page that tries to serve two serves neither well.
 
-Diátaxis describes pages, not folders. Pages are grouped by the area they describe, such as a component or a system, and each page declares its type in frontmatter.
+Each page declares its Diátaxis type in frontmatter. Directories put tutorials and how-to guides together by type, and reference and explanation pages by the system they describe. See [Organize the pages](#organize-the-pages).
 
 ## The four types
 
@@ -41,31 +41,44 @@ type: how-to
 
 The value is one of `tutorial`, `how-to`, `reference`, or `explanation`. The templates include it. `scripts/docs-lint.sh` fails a page without a valid type, and a reviewer checks that the content matches it.
 
-## Organize by area
+## Organize the pages
 
-Put each page in a directory named for the area it describes, such as a component of the code or a system it runs on, in lowercase with hyphens:
+A reader comes to the docs either to do something or to look something up, and the tree splits the same way: tasks by type, and knowledge by system. These rules live outside the tree they govern, in `doc-standards/`.
 
 ```text
 docs/
-├── README.md              Index of every page, grouped by area
-├── standards/             These rules
-├── api/
-│   ├── README.md          Optional index for the area
-│   ├── endpoints.md       type: reference
-│   └── add-an-endpoint.md type: how-to
-├── network/
-│   └── rotate-the-tls-certificate.md   type: how-to
-└── storage/
-    └── why-the-database-is-postgresql.md   type: explanation
+├── README.md              Index of every page, following the tree
+├── tutorials/             Every tutorial
+├── how-to/                Every how-to guide
+├── overview/              The project as a whole
+├── infrastructure/        Group: what the project runs on
+│   ├── README.md          Lists the group's systems
+│   └── network/
+│       ├── network.md     type: reference
+│       └── why-the-firewall-is-separate.md  type: explanation
+├── services/              Group: what the project provides to its users
+│   └── api/
+│       └── endpoints.md   type: reference
+└── incidents/
+    └── 2026-10-20-short-description/
 ```
 
-- Name the directory for what the reader is working on, such as `api/`, `storage/`, `deployment/`, or `network/`.
-- Put a page that spans areas in the directory where a reader would start. Put pages about the project as a whole in `overview/`.
+- **Tasks by type:** put every tutorial in `docs/tutorials/`, and every how-to guide in `docs/how-to/`. A reader with a task looks for the task, not for the system that does it. Keep each directory flat until it's too long to scan, about 20 pages, then divide it by who does the tasks or by system.
+- **Knowledge by system:** put reference and explanation pages in a directory for the system they describe, named in lowercase with hyphens, such as `network/`. Put pages about the project as a whole in `overview/`.
+- **Groups only when they help:** put system directories in a group, such as `infrastructure/` or `services/`, when there are more than about eight, or when they split along a line readers use. Keep every page within three directories of `docs/`.
+- **Link across the split:** a how-to guide links to the reference and explanation pages it depends on, and those pages link back to it under **Related**.
+- **Index each level:** `docs/README.md` lists every page with its type, with how-to guides under headings for who does them. Each group, `how-to/`, `tutorials/`, and each system with several pages has a `README.md` that lists its contents. Index pages don't need a type.
 - Don't put pages directly in `docs/`, and don't create directories before they have pages.
-- When an area has several pages, add a `README.md` to its directory that lists them by type. Index pages don't need a type.
-- Group by subject below an area directory only when it holds enough pages that a reader would struggle to scan it.
 
-Grouping by area keeps everything about one area together, which is how a reader looks for it. The type is a property of the page, so it lives on the page.
+`scripts/docs-lint.sh` fails a tutorial or how-to guide outside its directory, and any other type inside one.
+
+### Incidents
+
+Record each outage or data loss in its own directory under `docs/incidents/`, named `YYYY-MM-DD-short-description` for the day it started, such as `incidents/2026-03-14-database-disk-full/`. Each incident's pages stay together, whatever their type. If an incident leads to a new procedure, put it in `docs/how-to/`, and link to it.
+
+- Write the postmortem as an explanation page titled "Why" plus what happened, with a summary, a timeline, the causes, the impact, what changed, the lessons, and the open actions.
+- Add any other pages the incident needs in the same directory, such as a reference page listing the files kept from the recovery.
+- List each incident in `docs/incidents/README.md` and in `docs/README.md`, newest first.
 
 ## What each type includes
 
@@ -113,5 +126,5 @@ When a page starts to serve a second need, split it, and link the pages together
 
 - Name files in lowercase with hyphens, matching the title, such as `rotate-the-tls-certificate.md`.
 - Keep each fact in one page, and link to it from others instead of copying it. An explanation page may summarize a rule to explain it, but it links to the rule, and the rule's own page stays the authority.
-- Add each new page to `docs/README.md` under its area, with its type, and to the area's `README.md` if it has one.
+- Add each new page to `docs/README.md` under its heading, with its type, and to its directory's `README.md` if it has one.
 - Update a page in the same change as the code or configuration it describes. When you change a system directly instead, such as on a host, in a web interface, or in a cloud console, update the pages that describe it as part of the same task, before you call the task done.

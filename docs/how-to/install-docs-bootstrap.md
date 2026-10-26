@@ -66,4 +66,4 @@ Then upgrade your repositories. See [Upgrade a repository](upgrade-a-repository.
 ## Related
 
 - [Set up a repository](set-up-a-repository.md)
-- [Options](options.md)
+- [Options](../installer/options.md)

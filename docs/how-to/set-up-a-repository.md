@@ -10,7 +10,7 @@ Install the documentation system into a new or existing repository. The reposito
 
 - The `docs-bootstrap` command. See [Install docs-bootstrap](install-docs-bootstrap.md).
 - A clean working tree in the target repository, if it already exists, so you can review the changes with `git diff`.
-- The tools the checks need. See [Check documentation](../documentation/check-documentation.md#before-you-begin).
+- The tools the checks need. See [Check documentation](check-documentation.md#before-you-begin).
 
 ## Install
 
@@ -20,7 +20,7 @@ Install the documentation system into a new or existing repository. The reposito
    docs-bootstrap ../my-repo --dry-run
    ```
 
-   Replace `../my-repo` with the path to your repository. The installer takes the project name from the directory name, such as `My repo`, and names the Vale style after it, such as `MyRepo`. To use a different name, add `--name`, as described in [Options](options.md). The output lists each file the installer would create, merge, or leave alone.
+   Replace `../my-repo` with the path to your repository. The installer takes the project name from the directory name, such as `My repo`, and names the Vale style after it, such as `MyRepo`. To use a different name, add `--name`, as described in [Options](../installer/options.md). The output lists each file the installer would create, merge, or leave alone.
 
 1. Run the same command without `--dry-run`:
 
@@ -63,11 +63,11 @@ The output ends with this section:
 OK
 ```
 
-A fresh install has no errors. In an existing repository with pages in `docs/`, expect errors for pages without a `type` in frontmatter, or not in a directory for their topic. Fix them as described in the repository's `docs/standards/structure.md`. An agent can do this with the `docs-write` skill.
+A fresh install has no errors. In an existing repository with pages in `docs/`, expect errors for pages without a `type` in frontmatter, or not in the directory for their type. Fix them as described in the repository's `doc-standards/structure.md`. An agent can do this with the `docs-write` skill.
 
 ## Related
 
 - [Install docs-bootstrap](install-docs-bootstrap.md)
 - [Upgrade a repository](upgrade-a-repository.md)
-- [Options](options.md)
-- [Why the installer manages, seeds, or merges each file](why-files-are-managed-seeded-or-merged.md)
+- [Options](../installer/options.md)
+- [Why the installer manages, seeds, or merges each file](../installer/why-files-are-managed-seeded-or-merged.md)

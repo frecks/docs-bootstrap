@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
-# Check documentation against docs/standards.
+# Check documentation against doc-standards.
 #
 # Usage: scripts/docs-lint.sh [--with-referrers] [FILE...]
 #        scripts/docs-lint.sh --install
-# With no FILE, checks every Markdown file in docs/. FILE paths are relative to
-# the current directory.
+# With no FILE, checks every Markdown file in docs/ and doc-standards/. FILE
+# paths are relative to the current directory.
 #
 # --install installs the tools the checks use, and exits: Vale's Google style,
 # and the markdownlint packages locked in .markdownlint/package-lock.json. A
 # check installs them itself when they're missing or out of date.
 #
-# --with-referrers also runs markdownlint on the pages in docs/ that mention a
-# FILE's name, so a link to a FILE that an edit broke, such as an anchor to a
-# renamed heading, is caught. It costs about the same however large docs/ is.
+# --with-referrers also runs markdownlint on the pages in docs/ and
+# doc-standards/ that mention a FILE's name, so a link to a FILE that an edit
+# broke, such as an anchor to a renamed heading, is caught. It costs about the
+# same however large docs/ is.
 #
 # Runs four checks:
-#   1. Placement and type: each page is in an area directory, and declares
-#      its Diátaxis type in frontmatter.
+#   1. Placement and type: each page is in a directory under docs/, and
+#      declares its Diátaxis type in frontmatter. Tutorials and how-to guides
+#      are in docs/tutorials/ and docs/how-to/, and no other type is.
 #   2. Template instructions: no leftover comments from the templates.
 #   3. Vale: prose style (.vale.ini).
 #   4. markdownlint: Markdown syntax, and relative links that point to files
@@ -37,7 +39,7 @@ markdownlint=.markdownlint/node_modules/.bin/markdownlint-cli2
 # returns 1 when Vale can't run.
 install_vale_styles() {
   if ! command -v vale > /dev/null; then
-    echo "SKIPPED: vale is not installed. See docs/documentation/check-documentation.md."
+    echo "SKIPPED: vale is not installed. See docs/how-to/check-documentation.md."
     return 1
   fi
   local styles=.vale/styles/Google
@@ -83,7 +85,7 @@ install_markdownlint() {
     return 0
   fi
   if ! command -v npm > /dev/null; then
-    echo "SKIPPED: npm is not installed, so markdownlint can't be installed. See docs/documentation/check-documentation.md."
+    echo "SKIPPED: npm is not installed, so markdownlint can't be installed. See docs/how-to/check-documentation.md."
     return 1
   fi
   # Install next to the current packages, and swap them in once npm ci works.
@@ -186,7 +188,7 @@ done
 cd "$root" || exit 2
 
 if [ "$#" -eq 0 ]; then
-  mapfile -t files < <(find docs -name '*.md' -type f | sort)
+  mapfile -t files < <(find docs doc-standards -name '*.md' -type f | sort)
 fi
 
 if [ "${#files[@]}" -eq 0 ]; then
@@ -204,7 +206,7 @@ if [ "$with_referrers" -eq 1 ]; then
     names+=("$name" "${name// /%20}")
     while IFS= read -r ref; do
       lint_files+=("$ref")
-    done < <(grep -rlF --include='*.md' -e "$name" -e "${name// /%20}" docs | grep -vxF -- "$f")
+    done < <(grep -rlF --include='*.md' -e "$name" -e "${name// /%20}" docs doc-standards | grep -vxF -- "$f")
   done
   mapfile -t lint_files < <(printf '%s\n' "${lint_files[@]}" | sort -u)
 fi
@@ -213,15 +215,19 @@ status=0
 skipped=0
 
 echo "== Placement and type"
-# Pages live in an area directory, such as docs/api/, and declare their
-# Diátaxis type in frontmatter. README.md files are indexes and have no type.
+# Pages live in a directory under docs/, and declare their Diátaxis type in
+# frontmatter. Tutorials and how-to guides live in docs/tutorials/ and
+# docs/how-to/, and other types live in a directory for their system, such as
+# docs/network/.
+# README.md files are indexes and have no type.
+# The files in doc-standards/ aren't pages, so they aren't checked.
 type_ok=1
 for f in "${files[@]}"; do
   case "$f" in
-    docs/standards/* | */README.md) continue ;;
+    */README.md) continue ;;
     docs/*/*) ;;
     docs/*)
-      echo "$f: put pages in an area directory, such as docs/api/. See docs/standards/structure.md."
+      echo "$f: put pages in a directory, such as docs/how-to/ or docs/network/. See doc-standards/structure.md."
       type_ok=0
       continue
       ;;
@@ -244,11 +250,27 @@ for f in "${files[@]}"; do
   case "$type" in
     tutorial | how-to | reference | explanation) ;;
     "")
-      echo "$f: missing 'type' in frontmatter. Use tutorial, how-to, reference, or explanation. See docs/standards/structure.md."
+      echo "$f: missing 'type' in frontmatter. Use tutorial, how-to, reference, or explanation. See doc-standards/structure.md."
       type_ok=0
       ;;
     *)
       echo "$f: unknown type '$type'. Use tutorial, how-to, reference, or explanation."
+      type_ok=0
+      continue
+      ;;
+  esac
+  case "$f:$type" in
+    docs/how-to/*:how-to | docs/tutorials/*:tutorial) ;;
+    docs/how-to/* | docs/tutorials/*)
+      echo "$f: a $type page doesn't belong in ${f%/*}/. Put it in the directory of the system it describes. See doc-standards/structure.md."
+      type_ok=0
+      ;;
+    *:how-to)
+      echo "$f: put how-to guides in docs/how-to/. See doc-standards/structure.md."
+      type_ok=0
+      ;;
+    *:tutorial)
+      echo "$f: put tutorials in docs/tutorials/. See doc-standards/structure.md."
       type_ok=0
       ;;
   esac
@@ -259,7 +281,7 @@ echo "== Template instructions"
 # Vale skips HTML comments, so look for leftover template instructions here.
 template_ok=1
 for f in "${files[@]}"; do
-  case "$f" in docs/standards/*) continue ;; esac
+  case "$f" in doc-standards/*) continue ;; esac
   if grep -n -E '^\s*<!-- Template:' "$f" | sed "s|^|$f:|"; then
     template_ok=0
   fi

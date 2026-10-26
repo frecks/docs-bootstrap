@@ -20,5 +20,5 @@ An unknown placeholder, or any other `{{` left after rendering, stops the instal
 
 ## Related
 
-- [Change the template](change-the-template.md)
+- [Change the template](../how-to/change-the-template.md)
 - [Options](../installer/options.md)

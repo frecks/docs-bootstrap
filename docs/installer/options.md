@@ -12,9 +12,9 @@ This page lists the options of the installer, and how it treats each file it ins
 docs-bootstrap TARGET [OPTIONS]
 ```
 
-`TARGET` is the repository to set up. The installer creates the directory if it doesn't exist. Options can come before or after `TARGET`. To install the command, see [Install docs-bootstrap](install-docs-bootstrap.md).
+`TARGET` is the repository to set up. The installer creates the directory if it doesn't exist. Options can come before or after `TARGET`. To install the command, see [Install docs-bootstrap](../how-to/install-docs-bootstrap.md).
 
-The command includes a copy of the template from when you installed it. To change the template, run the installer from the `docs-bootstrap` repository with `go run .` instead, as described in [Change the template](../template/change-the-template.md).
+The command includes a copy of the template from when you installed it. To change the template, run the installer from the `docs-bootstrap` repository with `go run .` instead, as described in [Change the template](../how-to/change-the-template.md).
 
 ## Options
 
@@ -40,7 +40,7 @@ The installer treats each file one of three ways. For the reasons, see [Why the 
 | Kind | Files | On first run | On later runs |
 | --- | --- | --- | --- |
 | Managed | Every file in `template/` that isn't listed below | Created, or a conflict if a different file exists | Updated if unedited since the last run, otherwise a conflict |
-| Seed | `docs/README.md`, the pages in `docs/documentation/`, and the vocabulary's `accept.txt` | Created if missing | Updated if unedited since the installer last wrote it. Otherwise left alone, and listed as not updated once for each new version. Created again if deleted. |
+| Seed | `docs/README.md`, `docs/how-to/README.md`, `docs/how-to/check-documentation.md`, `doc-standards/rationale.md`, and the vocabulary's `accept.txt` | Created if missing | Updated if unedited since the installer last wrote it. Otherwise left alone, and listed as not updated once for each new version. Created again if deleted. |
 | Merged | `.gitignore`, `.claude/settings.json`, `AGENTS.md`, `CLAUDE.md`, and the links in `.claude/skills/` | Created, or the needed lines added to the existing file | The needed lines added again if missing |
 
 How each merged file changes:
@@ -64,6 +64,6 @@ The installer keeps the line endings of each file it changes, so a file with CRL
 
 ## Related
 
-- [Install docs-bootstrap](install-docs-bootstrap.md)
-- [Set up a repository](set-up-a-repository.md)
+- [Install docs-bootstrap](../how-to/install-docs-bootstrap.md)
+- [Set up a repository](../how-to/set-up-a-repository.md)
 - [Template syntax](../template/template-syntax.md)

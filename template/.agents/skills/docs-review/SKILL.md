@@ -19,15 +19,15 @@ Linters handle what can be checked mechanically. Your job is what they can't che
 
    If a check prints `SKIPPED`, its tool isn't installed, isn't on `PATH`, or couldn't run. The script exits with status 3 for that reason, unless another check found an error in the page. Report which checks were skipped. The page can't be **Ready** until they run.
 
-1. **Read the standards:** `docs/standards/structure.md`, `docs/standards/style-guide.md`, and `docs/standards/review-checklist.md`.
+1. **Read the standards:** `doc-standards/structure.md`, `doc-standards/style-guide.md`, and `doc-standards/review-checklist.md`.
 
-1. **Check the type.** Decide what type the page is from its content, then compare it with the `type` in its frontmatter. Report a mismatch, and any part that belongs to a different type, and say where it should go. Check that the page is in the directory of the area a reader would look in first.
+1. **Check the type.** Decide what type the page is from its content, then compare it with the `type` in its frontmatter. Report a mismatch, and any part that belongs to a different type, and say where it should go. Check that the page is where `doc-standards/structure.md` puts its type: a tutorial or how-to guide in its own directory, and any other page in the directory of the system a reader would look in first.
 
 1. **Check accuracy.** For each command, path, name, value, hostname, address, port, and claim about how a tool or the code behaves, find the source and confirm it matches. Sources are, in order of preference: files in the repository, the tool's own documentation, then the running system. If the only evidence is weak, such as a file date, or there's none, list the fact as unconfirmed. Don't run commands that change a system to check a page.
 
-1. **Go through `docs/standards/review-checklist.md`** item by item. Skip items that don't apply to the page's type, without listing them.
+1. **Go through `doc-standards/review-checklist.md`** item by item. Skip items that don't apply to the page's type, without listing them.
 
-1. **Rank and report** using the severity levels and the definition of ready in `docs/standards/review-checklist.md`, in the format below. Don't edit the page unless you were asked to fix it as well.
+1. **Rank and report** using the severity levels and the definition of ready in `doc-standards/review-checklist.md`, in the format below. Don't edit the page unless you were asked to fix it as well.
 
 ## Report format
 

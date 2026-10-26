@@ -4,7 +4,7 @@ type: how-to
 
 # Check documentation
 
-Run the documentation checks on a page before you finish a change, so it meets the [documentation standards](../standards/README.md). In Claude Code, hooks run these checks after each edit to a page in `docs/`, and on every page before the agent finishes if `docs/` has uncommitted changes.
+Run the documentation checks on a page before you finish a change, so it meets the [documentation standards](../../doc-standards/README.md). In Claude Code, hooks run these checks after each edit to a page in `docs/` or `doc-standards/`, and on every page before the agent finishes if either has uncommitted changes.
 
 ## Before you begin
 
@@ -26,10 +26,10 @@ curl -sL https://github.com/errata-ai/vale/releases/download/v3.24.0/vale_3.24.0
 From the repository root, run the script with the page's path. A path is relative to the directory you run the script in:
 
 ```bash
-scripts/docs-lint.sh docs/documentation/check-documentation.md
+scripts/docs-lint.sh docs/how-to/check-documentation.md
 ```
 
-To check every page in `docs/`, run the script with no arguments:
+To check every page in `docs/` and `doc-standards/`, run the script with no arguments:
 
 ```bash
 scripts/docs-lint.sh
@@ -41,9 +41,9 @@ The first run downloads the pinned Google style for Vale into `.vale/styles/Goog
 
 The script runs four checks, and prints a section for each:
 
-- **Placement and type:** the page is in an area directory, and declares its [Diátaxis type](../standards/structure.md#declare-the-type) in frontmatter.
-- **Template instructions:** no `<!-- Template: -->` comments remain from a [template](../standards/templates/).
-- **Vale:** the prose follows the [style guide](../standards/style-guide.md). Each alert names its rule, such as `Google.Passive`.
+- **Placement and type:** the page declares its [Diátaxis type](../../doc-standards/structure.md#declare-the-type) in frontmatter, and is in the directory for it: a tutorial or how-to guide in `docs/tutorials/` or `docs/how-to/`, and any other page in a system directory.
+- **Template instructions:** no `<!-- Template: -->` comments remain from a [template](../../doc-standards/templates/).
+- **Vale:** the prose follows the [style guide](../../doc-standards/style-guide.md). Each alert names its rule, such as `Google.Passive`.
 - **markdownlint:** the Markdown syntax follows `.markdownlint-cli2.jsonc`, and each relative link or image points to a file that exists. An anchor, such as `style-guide.md#dates`, must match a heading in that file. A link that starts with `/` is checked from the repository root.
 
 Fix every error. Fix warnings and suggestions unless you've decided they don't apply.
@@ -61,6 +61,6 @@ OK
 
 ## Related
 
-- [Documentation standards](../standards/README.md)
-- [Review checklist](../standards/review-checklist.md)
-- [Why the documentation system works this way](why-the-documentation-system-works-this-way.md)
+- [Documentation standards](../../doc-standards/README.md)
+- [Review checklist](../../doc-standards/review-checklist.md)
+- [Why the documentation system works this way](../../doc-standards/rationale.md)

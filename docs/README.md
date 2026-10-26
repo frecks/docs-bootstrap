@@ -1,33 +1,32 @@
 # Docs bootstrap documentation
 
-Documentation for Docs bootstrap, grouped by area. Each page has a type: a tutorial teaches, a how-to guide completes a task, a reference page lists facts, and an explanation page gives reasons. To write or review a page, start with the [documentation standards](standards/README.md).
+Documentation for Docs bootstrap. Each page has a type: a tutorial teaches, a how-to guide completes a task, a reference page lists facts, and an explanation page gives reasons. How-to guides come first. Reference and explanation pages follow, grouped by system: the installer, and the template it installs. To write or review a page, start with the [documentation standards](../doc-standards/README.md), which also explain [why the documentation system works this way](../doc-standards/rationale.md).
+
+## How-to guides
+
+See the [how-to index](how-to/README.md).
+
+| Page | System |
+| --- | --- |
+| [Install docs-bootstrap](how-to/install-docs-bootstrap.md) | Installer |
+| [Set up a repository](how-to/set-up-a-repository.md) | Installer |
+| [Upgrade a repository](how-to/upgrade-a-repository.md) | Installer |
+| [Change the template](how-to/change-the-template.md) | Template |
+| [Check documentation](how-to/check-documentation.md) | Documentation |
 
 ## Installer
 
-Install the `docs-bootstrap` command, and use it to set up and upgrade repositories.
+The `docs-bootstrap` command, which sets up and upgrades repositories.
 
 | Page | Type |
 | --- | --- |
-| [Install docs-bootstrap](installer/install-docs-bootstrap.md) | How-to |
-| [Set up a repository](installer/set-up-a-repository.md) | How-to |
-| [Upgrade a repository](installer/upgrade-a-repository.md) | How-to |
 | [Options](installer/options.md) | Reference |
 | [Why the installer manages, seeds, or merges each file](installer/why-files-are-managed-seeded-or-merged.md) | Explanation |
 
 ## Template
 
-Change the documentation system that the installer installs.
+The documentation system that the installer installs.
 
 | Page | Type |
 | --- | --- |
-| [Change the template](template/change-the-template.md) | How-to |
 | [Template syntax](template/template-syntax.md) | Reference |
-
-## Documentation
-
-How to write and check these docs.
-
-| Page | Type |
-| --- | --- |
-| [Check documentation](documentation/check-documentation.md) | How-to |
-| [Why the documentation system works this way](documentation/why-the-documentation-system-works-this-way.md) | Explanation |
