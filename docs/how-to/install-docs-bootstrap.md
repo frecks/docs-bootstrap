@@ -9,14 +9,14 @@ Build the `docs-bootstrap` command and put it on your `PATH`, so you can set up 
 ## Before you begin
 
 - Go 1.22 or later.
-- Git, and access to the private `github.com/frecks/docs-bootstrap` repository.
+- Git.
 
 ## Install
 
 1. Clone the repository:
 
    ```bash
-   git clone git@github.com:frecks/docs-bootstrap.git
+   git clone https://github.com/frecks/docs-bootstrap.git
    ```
 
 1. Build and install the command:
