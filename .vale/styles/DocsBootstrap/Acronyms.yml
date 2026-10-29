@@ -1,0 +1,113 @@
+# Replaces Google.Acronyms, which .vale.ini turns off. See
+# doc-standards/style-guide.md#abbreviations.
+#
+# Copied from Google.Acronyms in errata-ai/Google v0.7.1, with two changes:
+# - The exceptions add the abbreviations our audience knows, such as DNS and
+#   VLAN. Add one here only if a technical reader who doesn't know this project
+#   would know it. Product and project names written in capitals that such a
+#   reader would know, such as LLVM, go in the DocsBootstrap vocabulary instead.
+# - A definition counts in lowercase, as in "single sign-on (SSO)",
+#   which Google's guide recommends. Google's rule accepted only title case.
+#   A suffix counts too, as in "(UTF-8)". For a name whose letters don't help
+#   the reader, a description after it counts, as in "LXD (Canonical's
+#   container manager)". Vale records every capture group, so each form has
+#   its own.
+# When the Packages line in .vale.ini changes, compare this file with
+# .vale/styles/Google/Acronyms.yml.
+extends: conditional
+message: "Spell out '%s', if it's unfamiliar to the audience."
+link: 'https://developers.google.com/style/abbreviations'
+level: suggestion
+ignorecase: false
+# Ensures that the existence of 'first' implies the existence of 'second'.
+first: '\b([A-Z]{3,5})\b'
+second: '(?:\b[\w-]+ )+\(([A-Z]{3,5})[\w-]*\)|\b([A-Z]{3,5})[\w-]* \([^)]+\)'
+exceptions:
+  # Known to our audience.
+  - ACL
+  - ARP
+  - BIOS
+  - DHCP
+  - DNS
+  - FTP
+  - GMT
+  - ICMP
+  - ISO
+  - LAN
+  - MAC
+  - MTU
+  - NAT
+  - NFS
+  - NIC
+  - PCI
+  - PID
+  - POSIX
+  - RAID
+  - SFTP
+  - SHA
+  - SMB
+  - SSD
+  - TLS
+  - UDP
+  - UEFI
+  - UID
+  - UTC
+  - VLAN
+  - VNC
+  - VPN
+  - WAN
+  # From Google.Acronyms.
+  - API
+  - ASP
+  - CLI
+  - CPU
+  - CSS
+  - CSV
+  - DEBUG
+  - DOM
+  - DPI
+  - FAQ
+  - GCC
+  - GDB
+  - GET
+  - GPU
+  - GTK
+  - GUI
+  - HTML
+  - HTTP
+  - HTTPS
+  - IDE
+  - JAR
+  - JSON
+  - JSX
+  - LESS
+  - LLDB
+  - NET
+  - NOTE
+  - NVDA
+  - OSS
+  - PATH
+  - PDF
+  - PHP
+  - POST
+  - RAM
+  - REPL
+  - RSA
+  - SCM
+  - SCSS
+  - SDK
+  - SQL
+  - SSH
+  - SSL
+  - SVG
+  - TBD
+  - TCP
+  - TODO
+  - URI
+  - URL
+  - USB
+  - UTF
+  - XML
+  - XSS
+  - YAML
+  - ZIP

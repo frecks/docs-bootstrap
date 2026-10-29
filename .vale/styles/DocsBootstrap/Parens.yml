@@ -1,0 +1,19 @@
+# Replaces Google.Parens, which .vale.ini turns off.
+#
+# Copied from Google.Parens in errata-ai/Google v0.7.1, with two changes:
+# - Scope summary, so it checks prose and list items but not table cells,
+#   where a short gloss such as "(DHCP reservation)" is normal.
+# - It skips an abbreviation with a suffix, such as "(UTF-8)", as Google's
+#   rule skips a bare one, such as "(DNS)", and parentheses right after an
+#   abbreviation, such as "LXD (Canonical's container manager)". All are
+#   definitions that DocsBootstrap.Acronyms asks for.
+# When the Packages line in .vale.ini changes, compare this file with
+# .vale/styles/Google/Parens.yml.
+extends: existence
+message: "Use parentheses judiciously."
+link: 'https://developers.google.com/style/parentheses'
+nonword: true
+scope: summary
+level: suggestion
+tokens:
+  - '(?<!\b[A-Z]{3,5}[\w-]* )\((?![A-Z]{3,5}[\w-]*\))[^)]+\)'

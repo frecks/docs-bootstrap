@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Git pre-commit hook, with two checks. scripts/docs-lint.sh --install turns it
+# on by setting core.hooksPath to .githooks.
+#
+# 1. On every commit, gitleaks checks the staged changes for secrets, using
+#    .gitleaks.toml, and stops the commit if it finds one.
+# 2. Before a commit that changes the documentation or its checks,
+#    scripts/docs-lint.sh checks every page in docs/ and doc-standards/, and
+#    stops the commit if a check reports an error. Links to files and headings
+#    that don't exist are errors here, as in the Stop hook. It checks every
+#    page, not only the staged ones, so it also catches a link that a moved or
+#    deleted page broke. It checks the files on disk, so a page with unstaged
+#    changes is checked with them.
+#
+# A check whose tool isn't installed is skipped with a message, and doesn't
+# stop the commit.
+
+set -uo pipefail
+
+root="$(git rev-parse --show-toplevel)" || exit 0
+cd "$root" || exit 0
+
+# .gitleaks.toml needs gitleaks 8.25.0 or later, for its [[allowlists]] with
+# targetRules. gitleaks exits 10 on a finding, set by --exit-code, and 1 when
+# it can't run.
+if ! command -v gitleaks > /dev/null; then
+  echo "gitleaks isn't installed, so the commit wasn't checked for secrets. See docs/how-to/check-documentation.md." >&2
+elif [ "$(printf '%s\n' 8.25.0 "$(gitleaks version)" | sort -V | head -n 1)" != 8.25.0 ]; then
+  echo "gitleaks $(gitleaks version) is older than 8.25.0, so the commit wasn't checked for secrets. See docs/how-to/check-documentation.md." >&2
+else
+  gitleaks git --pre-commit --staged --redact --no-banner --log-level warn --exit-code 10
+  case $? in
+    0) ;;
+    10)
+      echo "gitleaks found what looks like a secret in the staged changes, so the commit was stopped. Replace it with a placeholder, such as API_TOKEN, and say where the real value is stored, as doc-standards/style-guide.md#secrets says. If it isn't a secret, add it to the allowlists in .gitleaks.toml." >&2
+      exit 1
+      ;;
+    *)
+      echo "gitleaks couldn't run, so the commit wasn't checked for secrets. Its output is above." >&2
+      ;;
+  esac
+fi
+
+[ -x scripts/docs-lint.sh ] || exit 0
+
+# Skip a commit that changes neither the pages nor the checks.
+if git diff --cached --quiet -- docs doc-standards .vale.ini .vale .markdownlint-cli2.jsonc scripts/docs-lint.sh; then
+  exit 0
+fi
+
+out="$(scripts/docs-lint.sh 2>&1)"
+case $? in
+  0) exit 0 ;;
+  3)
+    # A tool is missing or failed, which the pages can't fix.
+    echo "Some documentation checks couldn't run, so the commit isn't fully checked. Run scripts/docs-lint.sh to see which, and see docs/how-to/check-documentation.md." >&2
+    exit 0
+    ;;
+esac
+
+# Print only the errors. Vale prints each file's name above its alerts, so
+# each Vale error gets its file's name, and the other files are left out.
+echo "scripts/docs-lint.sh found errors in docs/ or doc-standards/, so the commit was stopped. Fix them, following doc-standards/, and commit again:" >&2
+awk '
+  /^== / { section = $0; print; next }
+  section == "== Vale" {
+    if ($0 ~ /^ [^ ].*\.md$/) { file = substr($0, 2); next }
+    if ($0 ~ / error /) { sub(/^ +/, ""); print file ":" $0; next }
+    if ($0 ~ /^(✔|✖)/) print
+    next
+  }
+  !/ (warning|suggestion) / { print }
+' <<< "$out" >&2
+exit 1

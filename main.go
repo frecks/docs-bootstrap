@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	version      = "0.5.0"
+	version      = "0.6.0"
 	manifestName = ".docs-bootstrap.json"
 	blockBegin   = "<!-- docs-bootstrap:begin -->"
 	blockEnd     = "<!-- docs-bootstrap:end -->"
@@ -49,6 +49,7 @@ var seed = map[string]bool{
 	"docs/how-to/README.md":                                 true,
 	"docs/how-to/check-documentation.md":                    true,
 	"doc-standards/rationale.md":                            true,
+	".gitleaks.toml":                                        true,
 	".vale/styles/config/vocabularies/{{STYLE}}/accept.txt": true,
 }
 
@@ -170,6 +171,8 @@ var reportSections = []struct{ key, label string }{
 	{"kept", "Not restored"},
 	{"seedKept", "Not updated, because they differ from the template (--replace PATH takes the new version)"},
 	{"conflict", "Conflicts, left unchanged"},
+	{"removed", "Removed, because the template no longer has them"},
+	{"retiredKept", "No longer in the template, but kept because they're edited (remove them if unused)"},
 }
 
 type installer struct {
@@ -296,6 +299,9 @@ func (in *installer) run() error {
 			return err
 		}
 	}
+	if err := in.retire(); err != nil {
+		return err
+	}
 	if err := in.linkClaudeMD(); err != nil {
 		return err
 	}
@@ -305,6 +311,43 @@ func (in *installer) run() error {
 		}
 	}
 	return in.saveManifest()
+}
+
+// retire removes the managed files that an earlier version installed and the
+// template no longer has, such as a Vale rule that was dropped, so they stop
+// running. An edited one is kept and reported, and is no longer managed.
+func (in *installer) retire() error {
+	current := map[string]bool{}
+	for _, f := range in.files {
+		current[f.rel] = true
+	}
+	var gone []string
+	for rel := range in.oldHashes {
+		if !current[rel] {
+			gone = append(gone, rel)
+		}
+	}
+	sort.Strings(gone)
+	for _, rel := range gone {
+		text, exists, err := in.read(rel)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			continue
+		}
+		if sha(text) != in.oldHashes[rel] {
+			in.add("retiredKept", rel)
+			continue
+		}
+		in.add("removed", rel)
+		if !in.dryRun {
+			if err := os.Remove(in.path(rel)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // replaceablePaths lists the managed and seed files, which --replace accepts.
@@ -916,7 +959,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 			}
 		}
 	}
-	if len(report["created"])+len(report["updated"])+len(report["merged"])+len(report["conflict"])+len(report["seedKept"]) == 0 {
+	if len(report["created"])+len(report["updated"])+len(report["merged"])+len(report["conflict"])+len(report["seedKept"])+len(report["removed"])+len(report["retiredKept"]) == 0 {
 		fmt.Fprint(stdout, "\nAlready up to date.\n")
 	}
 	if len(report["conflict"]) > 0 {

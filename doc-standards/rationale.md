@@ -36,15 +36,18 @@ The [review checklist](review-checklist.md) draws on Diátaxis, the [Write the D
 [Vale](https://vale.sh/) turns style rules into checks that run on every page, no matter who wrote it. It runs three styles:
 
 - **Google:** the [errata-ai/Google](https://github.com/errata-ai/Google) package, pinned to a release in `.vale.ini`. Pinning means a new package release can't change the results of a check without a deliberate update. `vale sync` downloads the package into `.vale/styles/Google/`, which `.gitignore` excludes.
-- **DocsBootstrap:** local rules in `.vale/styles/DocsBootstrap/` for what Google's package doesn't check, such as secrets, draft markers, and minimizing words.
+- **DocsBootstrap:** local rules in `.vale/styles/DocsBootstrap/` for what Google's package doesn't check, such as draft markers and minimizing words, and copies of seven Google rules adapted to this project, `DocsBootstrap.Headings`, `DocsBootstrap.Colons`, `DocsBootstrap.Acronyms`, `DocsBootstrap.DateFormat`, `DocsBootstrap.Contractions`, `DocsBootstrap.Semicolons`, and `DocsBootstrap.Parens`.
 - **Vale:** Vale's built-in rules, used with the DocsBootstrap vocabulary in `.vale/styles/config/vocabularies/DocsBootstrap/` to enforce the capitalization of product names.
 
-Four settings in `.vale.ini` change what the styles check:
+Twelve settings in `.vale.ini` change what the styles check:
 
 - `Vale.Spelling = NO` turns off the spell checker. Hostnames, package names, and tool names make it report too many false errors. Product names are still checked through the vocabulary.
 - `BasedOnStyles =` is empty for `doc-standards/`, so Vale doesn't check the standards. They quote bad examples on purpose, and the templates hold placeholders. This page is the exception, and Vale checks it like any other page.
-- `Google.OxfordComma = suggestion` lowers the serial comma rule, because it also flags commas that aren't in a list. Review checks serial commas instead.
+- `Google.OxfordComma = NO` turns off the serial comma rule, because it flags commas before phrases that aren't lists, and most of its alerts are of that kind. Review checks serial commas instead.
 - `Google.We = suggestion` lowers the rule against first-person plural words, such as `we` and `our`. Google allows them for the people who maintain a project, so the rule points out each one for review instead of warning.
+- `Google.Passive = NO` turns off the rule against passive voice. It flags any form of "be" before a past participle, and many pages are reference and explanation pages about history and the state of systems, where Google's guide allows the passive. Review checks voice instead.
+- `Google.Headings = NO`, `Google.Colons = NO`, `Google.Acronyms = NO`, and `Google.DateFormat = NO` turn off the four Google rules that the DocsBootstrap copies replace. The style guide's [Capitals in headings](style-guide.md#capitals-in-headings), [Capitals after a colon](style-guide.md#capitals-after-a-colon), [Abbreviations](style-guide.md#abbreviations), and [Dates](style-guide.md#dates) say why.
+- `Google.Contractions = NO`, `Google.Semicolons = NO`, and `Google.Parens = NO` turn off three more Google rules that DocsBootstrap copies replace. `DocsBootstrap.Contractions` keeps only the negations, which Google's guide stresses, because a pronoun and a verb often can't be contracted, as at the end of a clause. `DocsBootstrap.Semicolons` and `DocsBootstrap.Parens` check prose and lists but not table cells, where facts with their own commas and short glosses are normal, and `DocsBootstrap.Parens` also skips abbreviation definitions.
 
 ### A Markdown linter checks syntax
 
@@ -70,8 +73,10 @@ Having one script means people, agents, and the hooks all run the same checks. T
 
 Two hooks in `.claude/settings.json` run the script for agents in Claude Code:
 
-- **After each edit:** a `PostToolUse` hook checks a Markdown file in `docs/` or `doc-standards/` after each `Edit`, `MultiEdit`, or `Write`. It also runs markdownlint on the pages that mention the file's name, so a link that the edit broke elsewhere, such as an anchor to a renamed heading, is caught too. Checking only those pages keeps each edit fast however large `docs/` grows.
+- **After each edit:** a `PostToolUse` hook checks a Markdown file in `docs/` or `doc-standards/` after each `Edit`, `MultiEdit`, or `Write`. It also runs markdownlint on the pages that mention the file's name, so a link that the edit broke elsewhere, such as an anchor to a renamed heading, is caught too. Checking only those pages keeps each edit fast however large `docs/` grows. The hook reports a link to a file or heading that doesn't exist without blocking, because an agent often writes a link before the page or heading it points to, in the same task.
 - **Before the agent finishes:** a `Stop` hook checks every page in `docs/` and `doc-standards/`, if any page there has uncommitted changes. This catches what the edit hook can't see, such as a page that a command moved or deleted. It blocks the agent once, so it fixes the errors, and then lets it finish.
+
+A git pre-commit hook in `.githooks/`, which `scripts/docs-lint.sh --install` turns on, runs the script on every page before a commit that changes the documentation or its checks, and stops the commit on an error. The Stop hook runs only when there are uncommitted changes, so without it, an agent that edits pages with a script and commits in the same turn gets no check at all. Like the Stop hook, it blocks on broken links.
 
 Errors go back to the agent to fix before it moves on. Warnings and suggestions go to the agent as context, without blocking. If a check can't run, such as when Vale isn't installed or npm can't download markdownlint, the edit hook asks the agent to tell the user, the Stop hook shows the user a message, and neither blocks. The hooks catch problems while the agent is still working, instead of in review.
 
@@ -84,7 +89,7 @@ The docs-bootstrap tool installed these files, and `.docs-bootstrap.json` record
 We considered and rejected these alternatives:
 
 - **A directory for each system, holding every type:** it keeps each how-to guide next to the reference it depends on, but a reader with a task has to know which system does it first. The projects in the survey that organize this way, such as [Grafana](https://github.com/grafana/grafana/tree/main/docs/sources) and [Tigera](https://github.com/tigera/docs), have large, reference-heavy docs.
-- **A directory for each of the four types:** rejected because it splits a system's facts and reasons across `reference/` and `explanation/`, which readers look up by system. It's the simplest rule, and small projects such as [LXD](https://github.com/canonical/lxd/tree/main/doc) and [nix.dev](https://github.com/nixos/nix.dev/tree/master/source) use it, so it's the fallback if the blend stops working.
+- **A directory for each of the four types:** rejected because it splits a system's facts and reasons across `reference/` and `explanation/`, which readers look up by system. It's the simplest rule, and small projects such as [LXD](https://github.com/canonical/lxd/tree/main/doc) (Canonical's container manager) and [nix.dev](https://github.com/nixos/nix.dev/tree/master/source) use it, so it's the fallback if the blend stops working.
 - **Google's placeholder values, such as `example.com`, for every value:** rejected because a reader who needs to copy a real value can't copy a placeholder. See [Real values and placeholders](style-guide.md#real-values-and-placeholders).
 - **Google's date format, such as "October 19, 2026":** rejected because ISO 8601 dates sort correctly and match log timestamps. See [Dates](style-guide.md#dates).
 - **A nonbreaking space between a number and its unit:** rejected because it's hard to type in Markdown and doesn't change how pages read. See [Units](style-guide.md#units).

@@ -28,6 +28,8 @@ While the version is 0.x, the system isn't stable, and the installer doesn't mig
    - **Updated:** files you hadn't edited, now at the new version.
    - **Conflicts, left unchanged:** files you edited, which the installer kept.
    - **Not restored:** files you deleted, which the installer leaves deleted.
+   - **Removed:** files that an earlier version installed and the new template doesn't have, such as the `Secrets.yml` Vale rule that 0.6.0 dropped. The installer deletes each one you hadn't edited.
+   - **No longer in the template, but kept:** the same kind of file, which you edited. The installer leaves it, and stops managing it. Delete it if nothing uses it.
    - **Not updated:** seed files, such as `docs/how-to/check-documentation.md`, that differ from the new version because you edited them, or because an installer before 0.4.0 created them without recording a hash. The installer lists each one once for each new version. If you haven't edited one, take the new version with `--replace` and its path, as for a conflict.
 
 1. For each conflict, compare your version with the new one:
@@ -49,7 +51,20 @@ While the version is 0.x, the system isn't stable, and the installer doesn't mig
 
 1. If you upgraded from a version before 0.5.0, move the pages, as described in [Move pages to the 0.5.0 layout](#move-pages-to-the-050-layout).
 
+1. If you upgraded from a version before 0.6.0, read [Changes in 0.6.0](#changes-in-060).
+
 1. Review the changes with `git diff`, and commit them.
+
+## Changes in 0.6.0
+
+Version 0.6.0 replaces seven of the Google Vale rules with copies that fit technical docs, and adds a git pre-commit hook. The [style guide](../../doc-standards/style-guide.md) and [rationale](../../doc-standards/rationale.md) say why.
+
+- **Vale rules:** the `Headings`, `Colons`, `Acronyms`, `DateFormat`, `Contractions`, `Semicolons`, and `Parens` rules in your style replace Google's, which `.vale.ini` turns off. `Google.Passive` and `Google.OxfordComma` are off too. If you kept your `.vale.ini` as a conflict, the new rules run alongside Google's until you take the new version or turn Google's off by hand. Run `scripts/docs-lint.sh` afterward, and fix what the new rules flag.
+- **Secrets:** the `Secrets` Vale rule is gone. The pre-commit hook runs gitleaks on every commit instead, with the allowlists in `.gitleaks.toml`.
+- **Pre-commit hook:** the installer turns on the hook in `.githooks/` by setting `core.hooksPath`, unless that's already set or you ran the installer with `--skip-tools`. If so, see [Check before each commit](check-documentation.md#check-before-each-commit).
+- **Links after an edit:** the Claude Code edit hook reports a link to a file or heading that doesn't exist as a warning. The Stop hook and the pre-commit hook still stop on it.
+
+If you edited `docs/how-to/check-documentation.md`, the installer lists it as not updated. Add the gitleaks install steps and the *Check before each commit* section from the new version to your copy.
 
 ## Move pages to the 0.5.0 layout
 

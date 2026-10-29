@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0",
+  "version": "0.6.0",
   "options": {
     "name": "Docs bootstrap",
     "date": "2026-10-19"
@@ -8,33 +8,42 @@
     ".agents/skills/docs-review/SKILL.md": "0986fc13dd88d772d0aaf213e57334b8da9a2acd6da2312310a965be94014ee6",
     ".agents/skills/docs-write/SKILL.md": "1d11d9f653edc2724aa2803ff0ab52ab4303f10d6b18238bce4b25a91392ddbb",
     ".claude/hooks/docs-lint-stop.sh": "e046e91fcdf5f24fa5780c7587f1a1db0d3b6161df0f7f640fa6942fe5406b03",
-    ".claude/hooks/docs-lint.sh": "6e73272fa0dd910d55815d0ff3d17444234b91604814b2e80dd29bdddd2943fb",
+    ".claude/hooks/docs-lint.sh": "8383672bb4e716cf9b8e072753fc880a87d2adab74ca159fe4bf827875b97b33",
+    ".githooks/pre-commit": "ebb68bf43b8dfe8b6568cd1c24e6dd0ad74de0509c6758dfaedc9f0b81455395",
+    ".gitleaks.toml": "8bb30d021164691b63c9907d0bcf8631ce2daed1079e359610f2abd970ac9d98",
     ".markdownlint-cli2.jsonc": "1971d1dc66c959b53e93b15ea53fc2df4645e927cb97d1d835159805408ad72a",
     ".markdownlint/package-lock.json": "cfaacdba09ef5e9019d5188808f0a4080c9c9407fe90396833b13be719911484",
     ".markdownlint/package.json": "d9a935c91c40db1e9682527f41303696adf3cf6d0736f0216dab2ac29b965aac",
-    ".vale.ini": "45e82b44743d315629f886b3c6e02e358c07d49bf82c8410f036716b8ada5b0c",
+    ".vale.ini": "df2e95dd729177ccb1fa1eff1591985f13c53e6fa2617a233879b98698e953b3",
+    ".vale/styles/DocsBootstrap/Acronyms.yml": "e1901a0c1948f8ae7ac2655a1e82579c9cddc200c318d17c354617fb0c28e50c",
+    ".vale/styles/DocsBootstrap/Colons.yml": "c3132de0a6e3320fd98f941886e93f0143d445b2a7f72fe56bedcad6658740b9",
+    ".vale/styles/DocsBootstrap/Contractions.yml": "3de387cbddce7f3cc273b7c6bcdf8551672bec9a2b3954fb6faca624d587b261",
+    ".vale/styles/DocsBootstrap/DateFormat.yml": "bda9dd41a885d5a8f8d46a9e6b6b6cc6e0675b37176fa125671dc93e1ed7139b",
     ".vale/styles/DocsBootstrap/DraftMarkers.yml": "b67850557136b6c3b898c4a9089b6669e789f8aec7574b9b2585a497bbd257bd",
+    ".vale/styles/DocsBootstrap/Headings.yml": "f06c37c76ae3e592f9d6123776e4f7355e8c883e6b86c8facdf754f8a84c8406",
     ".vale/styles/DocsBootstrap/Minimizing.yml": "e31a3bd4c6a7a02ee0106d8f04cbfb2d95235e65f46ab09a8cc3851314d2b2a3",
-    ".vale/styles/DocsBootstrap/Secrets.yml": "8f42abc5c0089e9b7183af8400b4a9a6eccf293114f757c584fb52c980a40a5e",
+    ".vale/styles/DocsBootstrap/Parens.yml": "1c0ce4a1ba15dd5cb2c6a40da8b96aa73967a060777e4d5d0c7715f57765ca29",
+    ".vale/styles/DocsBootstrap/Semicolons.yml": "222126c0cda4ca2e41390f805ef21443ab311e87f7774a25f92679bdd8647a54",
     ".vale/styles/config/vocabularies/DocsBootstrap/accept.txt": "f43c61f97aa0d133891976d41d5e62b444d25dddb83712bed0d4eda77977a758",
     ".vale/styles/config/vocabularies/DocsBootstrap/reject.txt": "f837eafa9247deb1bf38eefe97f50c8a7e628f4d7b9b986a1b8b5880d3f80a1a",
-    "doc-standards/README.md": "a99a94e05b3f7dc0bad9652b484ca179ac2cd111a0e8e35354ec21cdcb5cfa2a",
-    "doc-standards/rationale.md": "23d208082ad1cd5a80f4ce51d8ea1bf804b012f0c79b757e06ef97accdd5d2a5",
+    "doc-standards/README.md": "5904ffb79027b4cfda64005a2346b0b50f062f14eb1f76058d7d20635e6fd6d8",
+    "doc-standards/rationale.md": "9673afb53f231f62e30cc71c45f4f8d598bd7edfcd1744bf2b3c0a475f124e50",
     "doc-standards/review-checklist.md": "5c2370a4a2e4e6cbd48e32e5de3c2fd77dcc1284caac758d312f5671d26fa4fe",
     "doc-standards/structure.md": "8b9db7b3cb94f78a997c6651edf31e45aee27b81822b7b662e19ed4c43803f40",
-    "doc-standards/style-guide.md": "5c5e3bcfad6be669cbc1c47b21000afd08220ec7dfb01c4f069cbe0eafa0b3f9",
+    "doc-standards/style-guide.md": "f3ee1b62713add7eee366f1241db638386ef48bcb5b337b43a5dc4edc59195ac",
     "doc-standards/templates/explanation.md": "973a58a84b2e56e0108a89ac63c53238cc4dfbe4d7b3cb29f504045ba987fd78",
     "doc-standards/templates/how-to.md": "346dc75b599e6d7984efbe0238f1d6c80496d2c3d898b01c89e5abcd73a9ab45",
     "doc-standards/templates/reference.md": "129074449fc37b05bcd47111e66be022e652605246cf1c20b9d7ce80f73c73e0",
     "doc-standards/templates/tutorial.md": "4dbb5c59bb243a4580deac1734999403d3ce7e22f07443954b7f740ba8bc81fc",
-    "docs/how-to/check-documentation.md": "a9c1276ca697e84ccf391d84d9f0ae383edff54ceed85b83fb4b54bc869eecd1",
-    "scripts/docs-lint.sh": "bde4e37ef968d6e2683a7277536e4b9c39f33e9004445711d5a3d094dd580df2"
+    "docs/how-to/check-documentation.md": "1fc4f3fb927e3fca7464a918b7fa2910e91cca6f410ef53a680ca07eaea502ce",
+    "scripts/docs-lint.sh": "46b8da0077fb2db28fcdb4e248abd4831b55d2ed0028607fc5a7f8e54de6ff8a"
   },
   "seeds": {
+    ".gitleaks.toml": "8bb30d021164691b63c9907d0bcf8631ce2daed1079e359610f2abd970ac9d98",
     ".vale/styles/config/vocabularies/DocsBootstrap/accept.txt": "f43c61f97aa0d133891976d41d5e62b444d25dddb83712bed0d4eda77977a758",
-    "doc-standards/rationale.md": "23d208082ad1cd5a80f4ce51d8ea1bf804b012f0c79b757e06ef97accdd5d2a5",
+    "doc-standards/rationale.md": "9673afb53f231f62e30cc71c45f4f8d598bd7edfcd1744bf2b3c0a475f124e50",
     "docs/README.md": "b183c2275cca03f13649aa45381b5674ab8b200555781160a53043f327b44613",
     "docs/how-to/README.md": "a7a54c318d1b794d453f8a1fa7e3669dc69e73fa7df9a5275e371ff39c4cf3f9",
-    "docs/how-to/check-documentation.md": "a9c1276ca697e84ccf391d84d9f0ae383edff54ceed85b83fb4b54bc869eecd1"
+    "docs/how-to/check-documentation.md": "1fc4f3fb927e3fca7464a918b7fa2910e91cca6f410ef53a680ca07eaea502ce"
   }
 }
