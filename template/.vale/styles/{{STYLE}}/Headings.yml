@@ -1,0 +1,45 @@
+# Replaces Google.Headings, which .vale.ini turns off. Google's guide keeps
+# abbreviations that are always written in all caps, such as VM, DNS, and SSH,
+# capitalized in a sentence-case heading, but Google.Headings flags them unless
+# they're on its list of exceptions. This copy adds one exception for every
+# abbreviation instead.
+#
+# Copied from Google.Headings in errata-ai/Google v0.7.1. When the Packages
+# line in .vale.ini changes, compare this file with
+# .vale/styles/Google/Headings.yml. Product names, such as PostgreSQL, come
+# from the {{STYLE}} vocabulary, which capitalization rules also accept.
+extends: capitalization
+message: "'%s' should use sentence-style capitalization."
+link: "https://developers.google.com/style/capitalization#capitalization-in-titles-and-headings"
+level: warning
+scope: heading
+match: $sentence
+exceptions:
+  # An abbreviation: a capital letter followed by capitals or digits, such as
+  # VM, X11, VMs, or IPv6. Vale also matches exceptions without regard to
+  # case, so (?-i:) keeps this one case-sensitive. It skips a word followed by
+  # a capitalized word, so a vocabulary entry such as SQL Server
+  # matches whole.
+  - '(?-i:\b[A-Z][A-Z0-9]+[a-z0-9]*\b)(?! [A-Z])'
+  # From Google.Headings, except that I is anchored. Exceptions match inside a
+  # word, so a bare I accepts any word with a capital I, such as "Into".
+  - Azure
+  - CLI
+  - Cosmos
+  - Docker
+  - Emmet
+  - gRPC
+  - '(?-i:\bI\b)'
+  - Kubernetes
+  - Linux
+  - macOS
+  - Marketplace
+  - MongoDB
+  - REPL
+  - Studio
+  - TypeScript
+  - URLs
+  - Visual
+  - VS
+  - Windows
+  - JSON

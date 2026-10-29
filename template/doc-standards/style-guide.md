@@ -38,7 +38,7 @@ curl -H "Authorization: Bearer API_TOKEN" https://api.example.com/v1/status
 
 **Why:** the repository may be shared or published, and a secret in history is hard to remove.
 
-**Enforced by:** Vale (`{{STYLE}}.Secrets`, error).
+**Enforced by:** review.
 
 ## Say where a command runs
 
@@ -69,13 +69,37 @@ Write product names with their exact capitalization, such as GitHub, PostgreSQL,
 
 **Enforced by:** Vale (`Vale.Terms`, error).
 
+## Capitals in headings
+
+Use sentence case for headings, as Google does, and keep the capitals of product names and of abbreviations that are always written in capitals, such as VM, DNS, and SSH: "Configure DNS for the API". If Vale flags a product name in a heading, add the name to the vocabulary. Don't drop it from the heading.
+
+**Why:** Google [keeps these capitalized](https://developers.google.com/style/capitalization#capitalization-in-titles-and-headings), but the Google Vale package's `Google.Headings` flags any abbreviation that isn't on its own short list. Writers drop names from headings to clear the warning, or learn to ignore it.
+
+**Enforced by:** Vale (`{{STYLE}}.Headings`, warning), which replaces `Google.Headings`. It accepts any abbreviation, and the names in the vocabulary.
+
+## Capitals after a colon
+
+Start the text after a colon in lowercase, as [Google describes](https://developers.google.com/style/capitalization#capitalization-and-colons), including in a list item after a bold label. Keep the capitals of a proper noun or an abbreviation, as in "**Needs a restart:** TLS settings load only at startup".
+
+**Why:** Google's guide keeps abbreviations in capitals, but the Google Vale package's `Google.Colons` flags them.
+
+**Enforced by:** Vale (`{{STYLE}}.Colons`, warning), which replaces `Google.Colons`. If it flags a product name, add the name to the vocabulary. Don't reword the sentence.
+
+## Abbreviations
+
+Don't spell out the abbreviations the [audience](#audience) knows, such as DNS, HTTP, and TLS. Spell out others, as [Google describes](https://developers.google.com/style/abbreviations).
+
+**Why:** Google ties spelling out to the audience, and ours is technical.
+
+**Enforced by:** Vale (`{{STYLE}}.Acronyms`, suggestion), which replaces `Google.Acronyms`. When it flags an abbreviation, spell it out, with the long form in lowercase unless it's a proper noun. If its letters don't help the reader, as with LXD, say what it is in parentheses after it instead: "LXD (Canonical's container manager)". Only if the audience knows the abbreviation, add it to the rule's exceptions, or to the vocabulary if it's a product name, such as LLVM. Being a product name doesn't make it known.
+
 ## Dates
 
 Use ISO 8601 dates, such as 2026-10-19.
 
 **Why:** Google prefers "October 19, 2026" for a global audience. Our audience is small, and ISO dates sort correctly and match log timestamps.
 
-**Enforced by:** review. Google's `DateFormat` rule still blocks ambiguous formats such as `10/19/2026`.
+**Enforced by:** Vale (`{{STYLE}}.DateFormat`, error), which replaces `Google.DateFormat`, for formats such as `10/19/2026`, and review for the rest. Unlike Google's rule, it doesn't read a version number such as 2.7.3.1042 as a date.
 
 ## Units
 
@@ -100,14 +124,6 @@ Don't leave `TODO`, `TBD`, `FIXME`, or placeholder text in a page. If something 
 **Why:** agents and people both leave markers they mean to come back to, and readers can't act on them.
 
 **Enforced by:** Vale (`{{STYLE}}.DraftMarkers`, error), and `scripts/docs-lint.sh` for `<!-- Template: -->` comments left from a template.
-
-## Serial commas
-
-Use a serial comma, as Google does: "names, paths, and values".
-
-**Why:** the Google Vale rule also flags commas that aren't in a list, so it's lowered to a suggestion, and review catches missing serial commas.
-
-**Enforced by:** Vale (`Google.OxfordComma`, suggestion), and review.
 
 ## "We"
 

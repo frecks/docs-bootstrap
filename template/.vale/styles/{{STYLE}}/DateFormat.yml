@@ -1,0 +1,21 @@
+# Replaces Google.DateFormat, which .vale.ini turns off. See
+# doc-standards/style-guide.md#dates.
+#
+# Copied from Google.DateFormat in errata-ai/Google v0.7.1, with two changes:
+# - Google's first token has no word boundaries, so it found 7.3.1042 inside
+#   the version number 2.7.3.1042. The lookarounds here skip a match with a
+#   digit, letter, or dot before it, or a digit after it, alone or after a dot.
+#   A date at the end of a sentence still matches.
+# - The message asks for an ISO 8601 date, as the style guide does, instead
+#   of Google's "July 31, 2016".
+# When the Packages line in .vale.ini changes, compare this file with
+# .vale/styles/Google/DateFormat.yml.
+extends: existence
+message: "Use an ISO 8601 date, such as 2026-10-19, not '%s'."
+link: doc-standards/style-guide.md#dates
+ignorecase: true
+level: error
+nonword: true
+tokens:
+  - '(?<![\w.])\d{1,2}(?:\.|/)\d{1,2}(?:\.|/)\d{4}(?!\.?\d)'
+  - '\d{1,2} (?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?) \d{4}'

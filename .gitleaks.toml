@@ -1,0 +1,26 @@
+# gitleaks finds secrets in commits. .githooks/pre-commit runs it on every
+# commit. See docs/how-to/check-documentation.md.
+title = "Docs bootstrap"
+
+# gitleaks' own rules, which recognize the formats of real tokens and keys.
+[extend]
+useDefault = true
+
+# .docs-bootstrap.json holds only the SHA-256 hashes of files that
+# docs-bootstrap installed, which look like API keys.
+[[allowlists]]
+description = "File hashes recorded by docs-bootstrap"
+paths = ['''^\.docs-bootstrap\.json$''']
+
+# The style guide's placeholders are uppercase, in place of a real value:
+# short words joined by underscores, each starting with a letter, such as
+# API_TOKEN or DB_PASSWORD, or one short word, such as HOST. The whole secret
+# must be one. A looser pattern, such as any uppercase value, would also
+# match real keys, such as an AWS key ID or X9F2KQ7P_8ZL4MW3RT6BV1NY5HC0JD.
+# It applies only to the two rules that placeholders set off; every other
+# rule, such as aws-access-token, still reports them.
+[[allowlists]]
+description = "Uppercase placeholders, such as API_TOKEN or HOST"
+targetRules = ["generic-api-key", "curl-auth-header"]
+regexTarget = "secret"
+regexes = ['''^[A-Z][A-Z0-9]{0,11}(?:_[A-Z][A-Z0-9]{0,11})+$''', '''^[A-Z]{1,12}$''']

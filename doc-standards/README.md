@@ -35,7 +35,7 @@ The script runs four checks, and fails on errors:
 | Prose style | [Vale](https://vale.sh/) | `.vale.ini`, `.vale/styles/DocsBootstrap/`, and the DocsBootstrap vocabulary |
 | Markdown syntax, and relative links that point to files and headings that exist, with links that start with `/` checked from the repository root | [markdownlint](https://github.com/DavidAnson/markdownlint) | `.markdownlint-cli2.jsonc` |
 
-In Claude Code, hooks run the same script after every edit to a file in `docs/` or `doc-standards/`, and on all of both before the agent finishes if either has uncommitted changes. They send errors back to the agent to fix.
+In Claude Code, hooks run the same script after every edit to a file in `docs/` or `doc-standards/`, and on all of both before the agent finishes if either has uncommitted changes. They send errors back to the agent to fix, except that the edit hook reports a link to a file or heading that doesn't exist yet without blocking. A git pre-commit hook, which `scripts/docs-lint.sh --install` turns on, stops a commit that changes the documentation if the checks find an error, including a broken link.
 
 Vale doesn't check the files in `doc-standards/`, except [rationale.md](rationale.md), because they quote bad examples on purpose. markdownlint still checks them.
 
@@ -56,6 +56,7 @@ The Google rules come from the [errata-ai/Google](https://github.com/errata-ai/G
 1. Read the [Google style guide's change log](https://developers.google.com/style/whats-new) and the package's [release notes](https://github.com/errata-ai/Google/releases) since the pinned version.
 1. Change the version in the `Packages` URL in `.vale.ini`.
 1. Run `scripts/docs-lint.sh`. It downloads the new version, because the `Packages` line changed. Every other clone of the repository downloads it on its next run too. Decide for each new alert whether to fix the pages or record a change in [style-guide.md](style-guide.md).
+1. Compare `Headings.yml`, `Colons.yml`, `Acronyms.yml`, `DateFormat.yml`, `Contractions.yml`, `Semicolons.yml`, and `Parens.yml` in `.vale/styles/DocsBootstrap/` with the files of the same name in the new `.vale/styles/Google/`, and copy any change to Google's rules into them. Each DocsBootstrap rule is a copy that replaces Google's.
 
 The Vale package is maintained separately from the guide and can lag behind it, so read the change log even when the package hasn't changed.
 

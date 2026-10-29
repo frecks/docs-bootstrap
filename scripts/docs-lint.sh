@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
 # Check documentation against doc-standards.
 #
-# Usage: scripts/docs-lint.sh [--with-referrers] [FILE...]
+# Usage: scripts/docs-lint.sh [--with-referrers] [--links-as-warnings] [FILE...]
 #        scripts/docs-lint.sh --install
 # With no FILE, checks every Markdown file in docs/ and doc-standards/. FILE
 # paths are relative to the current directory.
 #
 # --install installs the tools the checks use, and exits: Vale's Google style,
 # and the markdownlint packages locked in .markdownlint/package-lock.json. A
-# check installs them itself when they're missing or out of date.
+# check installs them itself when they're missing or out of date. --install
+# also turns on the pre-commit hook in .githooks/, which a check doesn't.
 #
 # --with-referrers also runs markdownlint on the pages in docs/ and
 # doc-standards/ that mention a FILE's name, so a link to a FILE that an edit
 # broke, such as an anchor to a renamed heading, is caught. It costs about the
 # same however large docs/ is.
+#
+# --links-as-warnings reports a link to a file or heading that doesn't exist
+# as a warning, which doesn't fail the run. The edit hook uses it, because an
+# edit can add a link before the edit that adds its target.
 #
 # Runs four checks:
 #   1. Placement and type: each page is in a directory under docs/, and
@@ -161,19 +166,48 @@ referrer_errors() {
     }'
 }
 
+# install_git_hook turns on the pre-commit hook in .githooks/, by setting
+# core.hooksPath, unless it's already set. The hook is on when the setting
+# names .githooks in this checkout or in the main checkout. Claude Code
+# rewrites a relative .githooks to the main checkout's absolute path when it
+# creates a worktree, and then every worktree runs the main checkout's copy.
+install_git_hook() {
+  git rev-parse --is-inside-work-tree > /dev/null 2>&1 || return 0
+  local current resolved main
+  current="$(git config --get core.hooksPath)"
+  if [ -z "$current" ]; then
+    git config core.hooksPath .githooks
+    echo "Turned on the pre-commit hook in .githooks/."
+    return 0
+  fi
+  # Git finds a relative path from the top of the working tree.
+  resolved="$(realpath -m -- "$current")"
+  main="$(dirname -- "$(git rev-parse --path-format=absolute --git-common-dir)")"
+  if [ "$resolved" != "$(realpath -m -- .githooks)" ] &&
+    [ "$resolved" != "$(realpath -m -- "$main/.githooks")" ]; then
+    echo "core.hooksPath is $current, so the pre-commit hook in .githooks/ isn't on. See docs/how-to/check-documentation.md."
+  fi
+}
+
 if [ "${1:-}" = "--install" ]; then
   cd "$root" || exit 2
   ok=0
   install_vale_styles || ok=3
   install_markdownlint || ok=3
+  install_git_hook
   exit "$ok"
 fi
 
 with_referrers=0
-if [ "${1:-}" = "--with-referrers" ]; then
-  with_referrers=1
+links_as_warnings=0
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --with-referrers) with_referrers=1 ;;
+    --links-as-warnings) links_as_warnings=1 ;;
+    *) break ;;
+  esac
   shift
-fi
+done
 
 # Resolve FILE arguments from the caller's directory, before moving to root.
 files=()
@@ -319,10 +353,23 @@ elif grep -q '^Summary:' <<< "$out"; then
   if [ "$with_referrers" -eq 1 ]; then
     errors="$(referrer_errors <<< "$errors")"
   fi
+  # MD051 checks anchors within a page, and relative-links checks links to
+  # other files and their anchors.
+  links=""
+  if [ "$links_as_warnings" -eq 1 ] && [ -n "$errors" ]; then
+    link_rules=' (MD051/link-fragments|relative-links) '
+    links="$(grep -E "$link_rules" <<< "$errors" | sed 's/ error / warning /')"
+    errors="$(grep -v -E "$link_rules" <<< "$errors")"
+  fi
   if [ -n "$errors" ]; then
     echo "$errors"
     status=1
-  else
+  fi
+  if [ -n "$links" ]; then
+    echo "$links"
+    echo "These links don't fail this run, but a run without --links-as-warnings, such as the Stop hook's, fails on them."
+  fi
+  if [ -z "$errors" ] && [ -z "$links" ]; then
     echo "OK"
   fi
 else

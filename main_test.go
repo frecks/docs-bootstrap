@@ -589,27 +589,95 @@ func TestHookDoesNotBlockWhenAToolCantRun(t *testing.T) {
 	}
 }
 
-func TestSecretsRuleAllowsPlaceholders(t *testing.T) {
-	if _, err := exec.LookPath("vale"); err != nil {
-		t.Skip("vale isn't installed")
+func TestRetiredManagedFilesAreRemoved(t *testing.T) {
+	template := copyDir(t, "template")
+	repo, path := sampleRepo(t)
+	write(t, filepath.Join(template, "old/unedited.txt"), "Old.\n")
+	write(t, filepath.Join(template, "old/edited.txt"), "Old.\n")
+	install(t, repo, "--template-dir", template)
+	write(t, path("old/edited.txt"), "Ours.\n")
+
+	// The next version of the template drops both files.
+	if err := os.RemoveAll(filepath.Join(template, "old")); err != nil {
+		t.Fatal(err)
+	}
+	code, out := install(t, repo, "--template-dir", template)
+	if code != 0 {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+	if _, err := os.Stat(path("old/unedited.txt")); err == nil {
+		t.Errorf("unedited retired file wasn't removed:\n%s", out)
+	}
+	if read(t, path("old/edited.txt")) != "Ours.\n" || !strings.Contains(out, "kept because they're edited") {
+		t.Errorf("edited retired file wasn't kept and reported:\n%s", out)
+	}
+	files := readJSON(t, path(manifestName))["files"].(map[string]any)
+	if _, ok := files["old/edited.txt"]; ok {
+		t.Error("kept retired file is still managed")
+	}
+	if code, out := install(t, repo, "--template-dir", template); code != 0 || !strings.Contains(out, "Already up to date.") {
+		t.Errorf("second run: exit %d:\n%s", code, out)
+	}
+}
+
+func TestEditHookReportsBrokenLinksWithoutBlocking(t *testing.T) {
+	requireRegistry(t)
+	if _, err := exec.LookPath("jq"); err != nil {
+		t.Skip("jq isn't installed")
 	}
 	repo, path := sampleRepo(t)
 	install(t, repo)
-	// Only the installed style, so the test doesn't need vale sync.
-	write(t, path("secrets.ini"), "StylesPath = .vale/styles\n\n[*.md]\nBasedOnStyles = SampleRepo\n")
-	write(t, path("page.md"), "# Secrets\n\n```yaml\npassword: YOUR_PASSWORD\ntoken: API_TOKEN\npassword: hunter2hunter2\napi_key = Secr3tValue1\n```\n")
-	cmd := exec.Command("vale", "--config=secrets.ini", "--output=line", "page.md")
-	cmd.Dir = repo
+	page := path("docs/x/links.md")
+	write(t, page, "---\ntype: reference\n---\n\n# Links\n\n- [Next](next.md)\n")
+	cmd := exec.Command(path(".claude/hooks/docs-lint.sh"))
+	cmd.Env = append(os.Environ(), "CLAUDE_PROJECT_DIR="+repo)
+	cmd.Stdin = strings.NewReader(`{"tool_input": {"file_path": "` + page + `"}}`)
 	out, _ := cmd.CombinedOutput()
-	for _, line := range []string{"page.md:4:", "page.md:5:"} {
-		if strings.Contains(string(out), line) {
-			t.Errorf("placeholder flagged as a secret:\n%s", out)
-		}
+	if code := cmd.ProcessState.ExitCode(); code != 0 || !strings.Contains(string(out), "Stop hook blocks on them") {
+		t.Errorf("exit %d, want 0 with a link warning:\n%s", code, out)
 	}
-	for _, line := range []string{"page.md:6:", "page.md:7:"} {
-		if !strings.Contains(string(out), line) {
-			t.Errorf("secret on %s not flagged:\n%s", line, out)
-		}
+	// Without the option, the same link is an error.
+	lint := exec.Command(path("scripts/docs-lint.sh"), page)
+	if lintOut, _ := lint.CombinedOutput(); lint.ProcessState.ExitCode() != 1 {
+		t.Errorf("lint without --links-as-warnings: exit %d, want 1:\n%s", lint.ProcessState.ExitCode(), lintOut)
+	}
+}
+
+func TestPreCommitHookStopsACommitWithErrors(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git isn't installed")
+	}
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	env := append(os.Environ(), "PATH="+fakeTools(t))
+	git := func(args ...string) (int, string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", repo, "-c", "user.name=Test", "-c", "user.email=test@example.com"}, args...)...)
+		cmd.Env = env
+		out, _ := cmd.CombinedOutput()
+		return cmd.ProcessState.ExitCode(), string(out)
+	}
+	git("init", "-q")
+
+	// --install turns the hook on, even when a tool can't be installed.
+	cmd := exec.Command(path("scripts/docs-lint.sh"), "--install")
+	cmd.Env = env
+	if out, _ := cmd.CombinedOutput(); !strings.Contains(string(out), "Turned on the pre-commit hook") {
+		t.Errorf("--install didn't turn on the hook:\n%s", out)
+	}
+	if _, out := git("config", "--get", "core.hooksPath"); strings.TrimSpace(out) != ".githooks" {
+		t.Errorf("core.hooksPath is %q, want .githooks", out)
+	}
+
+	// A commit whose checks are only skipped goes through.
+	git("add", "-A")
+	if code, out := git("commit", "-q", "-m", "Install"); code != 0 {
+		t.Fatalf("clean commit: exit %d:\n%s", code, out)
+	}
+	write(t, path("docs/x/untyped.md"), "# Untyped\n")
+	git("add", "-A")
+	if code, out := git("commit", "-q", "-m", "Add a page"); code == 0 || !strings.Contains(out, "docs/x/untyped.md") {
+		t.Errorf("commit with an error: exit %d, want it stopped:\n%s", code, out)
 	}
 }
 
@@ -660,8 +728,9 @@ func TestEditHookChecksPagesThatLinkToTheEditedPage(t *testing.T) {
 	cmd.Env = append(os.Environ(), "CLAUDE_PROJECT_DIR="+repo)
 	cmd.Stdin = strings.NewReader(`{"tool_input": {"file_path": "` + structure + `"}}`)
 	out, _ := cmd.CombinedOutput()
-	if code := cmd.ProcessState.ExitCode(); code != 2 || !strings.Contains(string(out), "check-documentation.md") {
-		t.Errorf("exit %d, want 2 with the broken link in check-documentation.md:\n%s", code, out)
+	// A broken link is a warning after an edit, which the Stop hook blocks on.
+	if code := cmd.ProcessState.ExitCode(); code != 0 || !strings.Contains(string(out), "check-documentation.md") {
+		t.Errorf("exit %d, want 0 with the broken link in check-documentation.md:\n%s", code, out)
 	}
 }
 

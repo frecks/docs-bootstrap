@@ -41,13 +41,19 @@ context() {
   jq -n --arg ctx "$1" '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $ctx}}'
 }
 
-# An edited script kept as a conflict may predate --with-referrers.
-args=(--with-referrers)
-grep -q -e '--with-referrers' "$root/scripts/docs-lint.sh" || args=()
+# A link to a file or heading that doesn't exist yet doesn't block an edit,
+# because a later edit may add it. The Stop hook blocks on it.
+# An edited script kept as a conflict may predate these options.
+args=()
+grep -q -e '--with-referrers' "$root/scripts/docs-lint.sh" && args+=(--with-referrers)
+grep -q -e '--links-as-warnings' "$root/scripts/docs-lint.sh" && args+=(--links-as-warnings)
 out="$("$root/scripts/docs-lint.sh" "${args[@]}" "$file" 2>&1)"
 case $? in
   0)
-    if grep -q -E ' (warning|suggestion) ' <<< "$out"; then
+    if grep -q -E ' warning (MD051/link-fragments|relative-links) ' <<< "$out"; then
+      context "scripts/docs-lint.sh passed with alerts. Fix the link warnings before you finish, once the files and headings they point to exist, because the Stop hook blocks on them. Fix the other alerts unless they don't apply:
+$out"
+    elif grep -q -E ' (warning|suggestion) ' <<< "$out"; then
       context "scripts/docs-lint.sh passed with alerts. Fix them unless they don't apply:
 $out"
     fi

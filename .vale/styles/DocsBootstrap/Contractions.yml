@@ -1,0 +1,31 @@
+# Replaces Google.Contractions, which .vale.ini turns off.
+#
+# Copied from Google.Contractions in errata-ai/Google v0.7.1, keeping only the
+# negations, which Google's guide stresses because "it's harder to misread
+# don't as do". Google's rule also swapped pairs such as "it is" and "they
+# are", which can't be contracted at the end of a clause or inside a phrase,
+# as in "leave it as it is" or "what it is isn't recorded", and every hit in
+# docs/ was one of those.
+# When the Packages line in .vale.ini changes, compare this file with
+# .vale/styles/Google/Contractions.yml.
+extends: substitution
+message: "Use '%s' instead of '%s'."
+link: 'https://developers.google.com/style/contractions'
+level: suggestion
+ignorecase: true
+action:
+  name: replace
+swap:
+  are not: aren't
+  cannot: can't
+  could not: couldn't
+  did not: didn't
+  do not: don't
+  does not: doesn't
+  has not: hasn't
+  have not: haven't
+  is not: isn't
+  should not: shouldn't
+  was not: wasn't
+  were not: weren't
+  will not: won't

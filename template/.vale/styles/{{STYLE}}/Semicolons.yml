@@ -1,0 +1,16 @@
+# Replaces Google.Semicolons, which .vale.ini turns off.
+#
+# Copied from Google.Semicolons in errata-ai/Google v0.7.1, with scope
+# summary instead of sentence, so it checks prose and list items but not
+# table cells. A table cell often lists facts that have their own commas,
+# which is one of the uses Google's guide allows.
+# When the Packages line in .vale.ini changes, compare this file with
+# .vale/styles/Google/Semicolons.yml.
+extends: existence
+message: "Use semicolons judiciously."
+link: 'https://developers.google.com/style/semicolons'
+nonword: true
+scope: summary
+level: suggestion
+tokens:
+  - ';'

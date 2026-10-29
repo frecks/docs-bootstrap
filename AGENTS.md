@@ -27,7 +27,7 @@ Check any page you change:
 scripts/docs-lint.sh docs/path/to/page.md
 ```
 
-In Claude Code, hooks in `.claude/settings.json` run this after each edit to `docs/` or `doc-standards/`, and on every page before you finish if either has uncommitted changes. They return errors for you to fix.
+In Claude Code, hooks in `.claude/settings.json` run this after each edit to `docs/` or `doc-standards/`, and on every page before you finish if either has uncommitted changes. They return errors for you to fix. After an edit, a link to a file or heading that doesn't exist yet comes back as a warning, so you can write the target next, but fix it before you finish: the Stop hook, and the git pre-commit hook in `.githooks/`, block on it.
 
 When you change code or configuration, update the pages that describe it in the same change. When you change a system directly, such as on a host or in a web interface, update the pages that describe it as part of the same task.
 <!-- docs-bootstrap:end -->

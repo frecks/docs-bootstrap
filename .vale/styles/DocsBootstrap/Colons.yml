@@ -1,0 +1,17 @@
+# Replaces Google.Colons, which .vale.ini turns off. See
+# doc-standards/style-guide.md#capitals-after-a-colon.
+#
+# Copied from Google.Colons in errata-ai/Google v0.7.1. Google's rule flags
+# any capitalized word after a colon, including abbreviations such as NAT and
+# VM, which keep their capitals. This copy matches only a capital followed by
+# a lowercase letter. Proper nouns, such as PostgreSQL, are exempt through the
+# DocsBootstrap vocabulary, because the match is the word itself.
+# When the Packages line in .vale.ini changes, compare this file with
+# .vale/styles/Google/Colons.yml.
+extends: existence
+message: "'%s' should be in lowercase."
+link: 'https://developers.google.com/style/colons'
+level: warning
+scope: sentence
+tokens:
+  - '(?<!Note: )(?<!Caution: )(?<!Warning: )(?<!Success: )(?<=:\s)[A-Z][a-z]\w*'

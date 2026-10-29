@@ -30,6 +30,8 @@ Local edits always win. To take the new version anyway, you name the file with `
 
 When someone deletes a managed file, the installer leaves it deleted. A repository may not want a file, such as the tutorial template, and restoring it on every upgrade would undo that choice.
 
+When a new version drops a managed file, such as a Vale rule that's no longer needed, the installer deletes it if no one has edited it, so it stops running. If someone has edited it, the installer keeps it, reports it, and stops managing it, because the edit may be something the repository still needs.
+
 ### Seed files belong to the repository once edited
 
 Files such as `docs/README.md` and the vocabulary's `accept.txt` start from the template, but the repository usually fills them with its own content right away. Upgrading them would mean merging that content, so once a repository edits a seed file, the installer leaves it alone, and doesn't report it as a conflict.
