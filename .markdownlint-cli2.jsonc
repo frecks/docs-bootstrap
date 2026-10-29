@@ -1,4 +1,4 @@
-// Markdown syntax rules for docs/. Prose style is Vale's job; see .vale.ini.
+// Markdown syntax rules for docs/ and doc-standards/. Prose style is Vale's job; see .vale.ini.
 // Rule reference: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
 {
   "config": {
@@ -27,5 +27,5 @@
     "relative-links": { "root_path": "." }
   },
   "customRules": ["markdownlint-rule-relative-links"],
-  "globs": ["docs/**/*.md"]
+  "globs": ["docs/**/*.md", "doc-standards/**/*.md"]
 }

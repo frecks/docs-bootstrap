@@ -10,11 +10,12 @@ These files define how documentation in this repository is written, structured, 
 | Writing or editing sentences | [style-guide.md](style-guide.md) |
 | Starting a new page | The matching file in [templates/](templates/) |
 | Reviewing a page before it's done | [review-checklist.md](review-checklist.md) |
+| Changing the documentation system, or understanding why it works this way | [rationale.md](rationale.md) |
 
 ## Foundations
 
 - **Style:** the [Google developer documentation style guide](https://developers.google.com/style), with the changes listed in [style-guide.md](style-guide.md).
-- **Structure:** [Diátaxis](https://diataxis.fr/), which gives each page one of four types: tutorial, how-to guide, reference, or explanation. Pages are grouped by area.
+- **Structure:** [Diátaxis](https://diataxis.fr/), which gives each page one of four types: tutorial, how-to guide, reference, or explanation. Tutorials and how-to guides are grouped by type, and reference and explanation pages by system.
 - **Practice:** the [Write the Docs guide](https://www.writethedocs.org/guide/), condensed into [review-checklist.md](review-checklist.md).
 
 ## Enforcement
@@ -22,28 +23,28 @@ These files define how documentation in this repository is written, structured, 
 Run the checks on any page you change:
 
 ```bash
-scripts/docs-lint.sh docs/api/example.md
+scripts/docs-lint.sh docs/infrastructure/network/network.md
 ```
 
 The script runs four checks, and fails on errors:
 
 | Check | Tool | Configuration |
 | --- | --- | --- |
-| Page is in an area directory, and declares a Diátaxis type | `scripts/docs-lint.sh` | [structure.md](structure.md) |
+| Page declares a Diátaxis type, and is in the directory for it | `scripts/docs-lint.sh` | [structure.md](structure.md) |
 | No instructions left from a template | `scripts/docs-lint.sh` | [templates/](templates/) |
-| Prose style | [Vale](https://vale.sh/) | `.vale.ini`, `.vale/styles/{{STYLE}}/`, and the {{STYLE}} vocabulary |
+| Prose style | [Vale](https://vale.sh/) | `.vale.ini`, `.vale/styles/DocsBootstrap/`, and the DocsBootstrap vocabulary |
 | Markdown syntax, and relative links that point to files and headings that exist, with links that start with `/` checked from the repository root | [markdownlint](https://github.com/DavidAnson/markdownlint) | `.markdownlint-cli2.jsonc` |
 
-In Claude Code, hooks run the same script after every edit to a file in `docs/`, and on all of `docs/` before the agent finishes if `docs/` has uncommitted changes. They send errors back to the agent to fix.
+In Claude Code, hooks run the same script after every edit to a file in `docs/` or `doc-standards/`, and on all of both before the agent finishes if either has uncommitted changes. They send errors back to the agent to fix.
 
-Vale doesn't check the files in `docs/standards/`, because they quote bad examples on purpose. markdownlint still checks them.
+Vale doesn't check the files in `doc-standards/`, except [rationale.md](rationale.md), because they quote bad examples on purpose. markdownlint still checks them.
 
 Some standards need judgment that no linter has. [review-checklist.md](review-checklist.md) covers those, and the `docs-review` skill applies it.
 
 ## Change a rule
 
 1. Change the rule in the relevant file here, and say why in the same change.
-1. If a tool can check the rule, add or change a Vale rule in `.vale/styles/{{STYLE}}/`, or a setting in `.vale.ini` or `.markdownlint-cli2.jsonc`.
+1. If a tool can check the rule, add or change a Vale rule in `.vale/styles/DocsBootstrap/`, or a setting in `.vale.ini` or `.markdownlint-cli2.jsonc`.
 1. Run `scripts/docs-lint.sh` with no arguments, and fix or accept what the change flags across existing pages.
 
 When a reviewer flags the same problem more than twice, turn it into a Vale rule. Over time, more of the standard is enforced by tools instead of review.

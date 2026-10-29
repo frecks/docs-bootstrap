@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# PostToolUse hook: check a Markdown file in docs/ after Claude edits it.
+# PostToolUse hook: check a Markdown file in docs/ or doc-standards/ after
+# Claude edits it.
 # Errors are sent back to Claude with exit code 2 so it fixes them.
 # Warnings, suggestions, and checks that couldn't run are passed along as
 # context without blocking.
@@ -31,7 +32,7 @@ if top="$(git -C "$(dirname "$file")" rev-parse --show-toplevel 2> /dev/null)" &
 fi
 
 case "$file" in
-  "$root"/docs/*.md) ;;
+  "$root"/docs/*.md | "$root"/doc-standards/*.md) ;;
   *) exit 0 ;;
 esac
 [ -x "$root/scripts/docs-lint.sh" ] || exit 0
@@ -54,12 +55,12 @@ $out"
     ;;
   3)
     # A tool is missing or failed, which the page can't fix.
-    context "Some documentation checks couldn't run, so $file wasn't fully checked. Fix any alerts below, and tell the user which checks were skipped; see docs/documentation/check-documentation.md.
+    context "Some documentation checks couldn't run, so $file wasn't fully checked. Fix any alerts below, and tell the user which checks were skipped; see docs/how-to/check-documentation.md.
 $out"
     exit 0
     ;;
 esac
 
-echo "scripts/docs-lint.sh found errors in $file, or in links to it from other pages. Fix them, following docs/standards/:
+echo "scripts/docs-lint.sh found errors in $file, or in links to it from other pages. Fix them, following doc-standards/:
 $out" >&2
 exit 2

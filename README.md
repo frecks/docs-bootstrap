@@ -2,10 +2,10 @@
 
 Set up any repository with a documentation system that agents and people can write to the same standard:
 
-- **Structure:** [Diátaxis](https://diataxis.fr/) page types, with pages grouped by topic.
+- **Structure:** [Diátaxis](https://diataxis.fr/) page types, with tutorials and how-to guides grouped by type, and reference and explanation pages by system.
 - **Style:** the [Google developer documentation style guide](https://developers.google.com/style), with the project's changes recorded in one file.
 - **Checks:** [Vale](https://vale.sh/) for prose, markdownlint for syntax, and checks for page type, links, and leftover template text, in one script.
-- **Agents:** `docs-write` and `docs-review` skills, and Claude Code hooks that run the checks after every edit in `docs/` and before the agent finishes.
+- **Agents:** `docs-write` and `docs-review` skills, and Claude Code hooks that run the checks after every edit in `docs/` or `doc-standards/`, and before the agent finishes.
 
 ## Quick start
 
@@ -23,7 +23,7 @@ docs-bootstrap ../my-repo
 
 The same rules work for code, infrastructure, or both. To upgrade later, update `docs-bootstrap` and run the same command again. The installer updates files you haven't edited, and keeps the ones you have.
 
-See [Install docs-bootstrap](docs/installer/install-docs-bootstrap.md), [Set up a repository](docs/installer/set-up-a-repository.md), and the rest of the [documentation](docs/README.md).
+See [Install docs-bootstrap](docs/how-to/install-docs-bootstrap.md), [Set up a repository](docs/how-to/set-up-a-repository.md), and the rest of the [documentation](docs/README.md).
 
 ## Requirements
 

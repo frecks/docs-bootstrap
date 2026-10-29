@@ -317,7 +317,7 @@ func TestBrokenTemplateSettingsFail(t *testing.T) {
 func TestCRLFCheckoutIsUnedited(t *testing.T) {
 	repo, path := sampleRepo(t)
 	install(t, repo)
-	guide := path("docs/standards/style-guide.md")
+	guide := path("doc-standards/style-guide.md")
 	write(t, guide, strings.ReplaceAll(read(t, guide), "\n", "\r\n"))
 	if code, out := install(t, repo); code != 0 || !strings.Contains(out, "Already up to date.") {
 		t.Errorf("exit %d:\n%s", code, out)
@@ -402,12 +402,12 @@ func TestUpgradeUpdatesUneditedFilesAndKeepsEditedOnes(t *testing.T) {
 	install(t, repo, "--template-dir", template)
 
 	// Edit one managed file in the repository, and seed file content.
-	guide := path("docs/standards/style-guide.md")
+	guide := path("doc-standards/style-guide.md")
 	write(t, guide, read(t, guide)+"\nLocal rule.\n")
 	write(t, path("docs/README.md"), "# Ours\n")
 
 	// A new version of the template changes both, plus another file.
-	for _, rel := range []string{"docs/standards/style-guide.md", "docs/standards/structure.md", "docs/README.md"} {
+	for _, rel := range []string{"doc-standards/style-guide.md", "doc-standards/structure.md", "docs/README.md"} {
 		full := filepath.Join(template, rel)
 		write(t, full, read(t, full)+"\nUpstream change.\n")
 	}
@@ -419,19 +419,19 @@ func TestUpgradeUpdatesUneditedFilesAndKeepsEditedOnes(t *testing.T) {
 	if text := read(t, guide); !strings.Contains(text, "Local rule.") || strings.Contains(text, "Upstream change.") {
 		t.Error("edited style guide wasn't kept")
 	}
-	if !strings.Contains(read(t, path("docs/standards/structure.md")), "Upstream change.") {
+	if !strings.Contains(read(t, path("doc-standards/structure.md")), "Upstream change.") {
 		t.Error("unedited structure.md wasn't updated")
 	}
 	if text := read(t, path("docs/README.md")); text != "# Ours\n" {
 		t.Errorf("seed file changed:\n%s", text)
 	}
-	if _, conflicts, _ := strings.Cut(out, "Conflicts"); !strings.Contains(conflicts, "docs/standards/style-guide.md") {
+	if _, conflicts, _ := strings.Cut(out, "Conflicts"); !strings.Contains(conflicts, "doc-standards/style-guide.md") {
 		t.Errorf("style guide isn't listed as a conflict:\n%s", out)
 	}
 
 	// Taking the new version replaces the local edit, and later upgrades
 	// treat the file as unedited again.
-	if code, out := install(t, repo, "--replace", "docs/standards/style-guide.md", "--template-dir", template); code != 0 {
+	if code, out := install(t, repo, "--replace", "doc-standards/style-guide.md", "--template-dir", template); code != 0 {
 		t.Errorf("exit %d:\n%s", code, out)
 	}
 	if text := read(t, guide); strings.Contains(text, "Local rule.") || !strings.Contains(text, "Upstream change.") {
@@ -445,7 +445,7 @@ func TestUpgradeUpdatesUneditedFilesAndKeepsEditedOnes(t *testing.T) {
 func TestDeletedManagedFileStaysDeleted(t *testing.T) {
 	repo, path := sampleRepo(t)
 	install(t, repo)
-	tutorial := path("docs/standards/templates/tutorial.md")
+	tutorial := path("doc-standards/templates/tutorial.md")
 	if err := os.Remove(tutorial); err != nil {
 		t.Fatal(err)
 	}
@@ -495,7 +495,7 @@ func TestUneditedSeedIsUpdated(t *testing.T) {
 	template := copyDir(t, "template")
 	repo, path := sampleRepo(t)
 	install(t, repo, "--template-dir", template)
-	why := "docs/documentation/why-the-documentation-system-works-this-way.md"
+	why := "doc-standards/rationale.md"
 	write(t, path("docs/README.md"), "# Ours\n")
 	for _, rel := range []string{why, "docs/README.md"} {
 		full := filepath.Join(template, rel)
@@ -520,7 +520,7 @@ func TestUneditedSeedIsUpdated(t *testing.T) {
 
 func TestSeedFromBeforeInstallIsKeptUntilReplaced(t *testing.T) {
 	repo, path := sampleRepo(t)
-	why := "docs/documentation/why-the-documentation-system-works-this-way.md"
+	why := "doc-standards/rationale.md"
 	write(t, path(why), "# Old\n")
 	if code, out := install(t, repo); code != 0 || strings.Contains(out, "Conflicts") {
 		t.Errorf("exit %d:\n%s", code, out)
@@ -558,7 +558,7 @@ func TestLintExitsThreeWhenAToolCantRun(t *testing.T) {
 		out, _ := cmd.CombinedOutput()
 		return cmd.ProcessState.ExitCode(), string(out)
 	}
-	if code, out := lint("docs/documentation/check-documentation.md"); code != 3 || strings.Count(out, "SKIPPED") != 2 {
+	if code, out := lint("docs/how-to/check-documentation.md"); code != 3 || strings.Count(out, "SKIPPED") != 2 {
 		t.Errorf("clean page: exit %d, want 3:\n%s", code, out)
 	}
 	write(t, path("docs/x/untyped.md"), "# Untyped\n")
@@ -580,7 +580,7 @@ func TestHookDoesNotBlockWhenAToolCantRun(t *testing.T) {
 		out, _ := cmd.CombinedOutput()
 		return cmd.ProcessState.ExitCode(), string(out)
 	}
-	if code, out := hook("docs/documentation/check-documentation.md"); code != 0 || !strings.Contains(out, "couldn't run") {
+	if code, out := hook("docs/how-to/check-documentation.md"); code != 0 || !strings.Contains(out, "couldn't run") {
 		t.Errorf("clean page: exit %d, want 0 with context:\n%s", code, out)
 	}
 	write(t, path("docs/x/untyped.md"), "# Untyped\n")
@@ -624,10 +624,10 @@ func TestLintResolvesFilesFromTheCallersDirectory(t *testing.T) {
 		return cmd.ProcessState.ExitCode(), string(out)
 	}
 	// The fake tools can't run, so a clean page exits 3.
-	if code, out := lint("documentation/check-documentation.md"); code != 3 || !strings.Contains(out, "== Placement and type\nOK") {
+	if code, out := lint("how-to/check-documentation.md"); code != 3 || !strings.Contains(out, "== Placement and type\nOK") {
 		t.Errorf("relative path: exit %d, want 3:\n%s", code, out)
 	}
-	if code, out := lint("documentation/nope.md"); code != 2 || !strings.Contains(out, "documentation/nope.md: no such file.") {
+	if code, out := lint("how-to/nope.md"); code != 2 || !strings.Contains(out, "how-to/nope.md: no such file.") {
 		t.Errorf("missing file: exit %d, want 2:\n%s", code, out)
 	}
 }
@@ -654,7 +654,7 @@ func TestEditHookChecksPagesThatLinkToTheEditedPage(t *testing.T) {
 	repo, path := sampleRepo(t)
 	install(t, repo)
 	// check-documentation.md links to this heading.
-	structure := path("docs/standards/structure.md")
+	structure := path("doc-standards/structure.md")
 	write(t, structure, strings.Replace(read(t, structure), "## Declare the type", "## State the type", 1))
 	cmd := exec.Command(path(".claude/hooks/docs-lint.sh"))
 	cmd.Env = append(os.Environ(), "CLAUDE_PROJECT_DIR="+repo)
@@ -737,14 +737,43 @@ func TestInstallInstallsLockedLintTools(t *testing.T) {
 func TestTypeMayBeQuotedOrUseCRLF(t *testing.T) {
 	repo, path := sampleRepo(t)
 	install(t, repo)
-	write(t, path("docs/x/quoted.md"), "---\ntype: \"how-to\"\n---\n\n# Quoted\n")
+	write(t, path("docs/how-to/quoted.md"), "---\ntype: \"how-to\"\n---\n\n# Quoted\n")
 	write(t, path("docs/x/crlf.md"), "---\r\ntype: 'reference'\r\n---\r\n\r\n# CRLF\r\n")
-	write(t, path("docs/x/bom.md"), "\ufeff---\ntype: how-to # a comment\n---\n\n# BOM\n")
-	cmd := exec.Command(path("scripts/docs-lint.sh"), path("docs/x/quoted.md"), path("docs/x/crlf.md"), path("docs/x/bom.md"))
+	write(t, path("docs/how-to/bom.md"), "\ufeff---\ntype: how-to # a comment\n---\n\n# BOM\n")
+	cmd := exec.Command(path("scripts/docs-lint.sh"), path("docs/how-to/quoted.md"), path("docs/x/crlf.md"), path("docs/how-to/bom.md"))
 	cmd.Env = append(os.Environ(), "PATH="+fakeTools(t))
 	out, _ := cmd.CombinedOutput()
 	if !strings.Contains(string(out), "== Placement and type\nOK") {
 		t.Errorf("type not read:\n%s", out)
+	}
+}
+
+func TestTasksArePlacedByTypeAndKnowledgeBySystem(t *testing.T) {
+	repo, path := sampleRepo(t)
+	install(t, repo)
+	lint := func(page, text string) string {
+		write(t, path(page), text)
+		cmd := exec.Command(path("scripts/docs-lint.sh"), path(page))
+		cmd.Env = append(os.Environ(), "PATH="+fakeTools(t))
+		out, _ := cmd.CombinedOutput()
+		return string(out)
+	}
+	for page, want := range map[string]string{
+		"docs/tutorials/learn.md":    "",
+		"docs/network/hosts.md":      "",
+		"docs/network/add-a-host.md": "put how-to guides in docs/how-to/",
+		"docs/network/learn.md":      "put tutorials in docs/tutorials/",
+		"docs/how-to/hosts.md":       "doesn't belong in docs/how-to/",
+	} {
+		types := map[string]string{"learn": "tutorial", "hosts": "reference", "add-a-host": "how-to"}
+		name := strings.TrimSuffix(filepath.Base(page), ".md")
+		out := lint(page, "---\ntype: "+types[name]+"\n---\n\n# Page\n")
+		if want == "" && !strings.Contains(out, "== Placement and type\nOK") {
+			t.Errorf("%s: placement not accepted:\n%s", page, out)
+		}
+		if want != "" && !strings.Contains(out, want) {
+			t.Errorf("%s: missing %q in:\n%s", page, want, out)
+		}
 	}
 }
 
@@ -837,7 +866,7 @@ func TestUpgradeFromBeforeSeedTrackingReportsStaleSeeds(t *testing.T) {
 	}
 	write(t, path(".docs-bootstrap.json"), string(data))
 
-	why := "docs/documentation/why-the-documentation-system-works-this-way.md"
+	why := "doc-standards/rationale.md"
 	full := filepath.Join(template, why)
 	write(t, full, read(t, full)+"\nUpstream change.\n")
 	code, out := install(t, repo, "--template-dir", template)
@@ -876,7 +905,7 @@ func TestOlderLintScriptKeepsHooksAndInstallerWorking(t *testing.T) {
 		t.Errorf("installer didn't explain the skipped tools:\n%s", out.String())
 	}
 
-	page := path("docs/documentation/check-documentation.md")
+	page := path("docs/how-to/check-documentation.md")
 	cmd := exec.Command(path(".claude/hooks/docs-lint.sh"))
 	cmd.Env = append(os.Environ(), "CLAUDE_PROJECT_DIR="+repo)
 	cmd.Stdin = strings.NewReader(`{"tool_input": {"file_path": "` + page + `"}}`)

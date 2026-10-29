@@ -59,5 +59,5 @@ The installer saves its options, the project name and the date of the first inst
 
 ## Related
 
-- [Upgrade a repository](upgrade-a-repository.md)
+- [Upgrade a repository](../how-to/upgrade-a-repository.md)
 - [Options](options.md)

@@ -28,7 +28,7 @@ While the version is 0.x, the system isn't stable, and the installer doesn't mig
    - **Updated:** files you hadn't edited, now at the new version.
    - **Conflicts, left unchanged:** files you edited, which the installer kept.
    - **Not restored:** files you deleted, which the installer leaves deleted.
-   - **Not updated:** seed files, such as the pages in `docs/documentation/`, that differ from the new version because you edited them, or because an installer before 0.4.0 created them without recording a hash. The installer lists each one once for each new version. If you haven't edited one, take the new version with `--replace` and its path, as for a conflict.
+   - **Not updated:** seed files, such as `docs/how-to/check-documentation.md`, that differ from the new version because you edited them, or because an installer before 0.4.0 created them without recording a hash. The installer lists each one once for each new version. If you haven't edited one, take the new version with `--replace` and its path, as for a conflict.
 
 1. For each conflict, compare your version with the new one:
 
@@ -42,12 +42,32 @@ While the version is 0.x, the system isn't stable, and the installer doesn't mig
    - To take the new version and lose your edits, run the installer with `--replace` and the file's path:
 
      ```bash
-     docs-bootstrap ../my-repo --replace docs/standards/style-guide.md
+     docs-bootstrap ../my-repo --replace doc-standards/style-guide.md
      ```
 
    - To keep your edits and add the new changes, edit your file by hand to include them.
 
+1. If you upgraded from a version before 0.5.0, move the pages, as described in [Move pages to the 0.5.0 layout](#move-pages-to-the-050-layout).
+
 1. Review the changes with `git diff`, and commit them.
+
+## Move pages to the 0.5.0 layout
+
+Version 0.5.0 moved the standards out of `docs/` and put how-to guides and tutorials in their own directories. The installer adds the new files, and leaves the old ones for you to move. `scripts/docs-lint.sh` reports each page that's still in the wrong place.
+
+1. If you edited any file in `docs/standards/`, make the same edits to its copy in `doc-standards/`. Then delete `docs/standards/`.
+
+1. If you edited `docs/documentation/why-the-documentation-system-works-this-way.md`, make the same edits to `doc-standards/rationale.md`. If you edited `docs/documentation/check-documentation.md`, make them to `docs/how-to/check-documentation.md`. Then delete `docs/documentation/`.
+
+1. Move every page with `type: how-to` to `docs/how-to/`, and every page with `type: tutorial` to `docs/tutorials/`. Leave reference and explanation pages in the directory for their system.
+
+1. Update `docs/README.md` and the `README.md` in each directory, so they list the pages where they are now. Add a `README.md` to `docs/tutorials/` if you have tutorials.
+
+1. Run the checks, and fix each link and placement they report:
+
+   ```bash
+   scripts/docs-lint.sh
+   ```
 
 ## Verify
 
@@ -65,5 +85,5 @@ Already up to date.
 
 ## Related
 
-- [Options](options.md)
-- [Why the installer manages, seeds, or merges each file](why-files-are-managed-seeded-or-merged.md)
+- [Options](../installer/options.md)
+- [Why the installer manages, seeds, or merges each file](../installer/why-files-are-managed-seeded-or-merged.md)

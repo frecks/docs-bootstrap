@@ -1,12 +1,11 @@
 # {{PROJECT}} documentation
 
-Documentation for {{PROJECT}}, grouped by area. Each page has a type: a tutorial teaches, a how-to guide completes a task, a reference page lists facts, and an explanation page gives reasons. To write or review a page, start with the [documentation standards](standards/README.md).
+Documentation for {{PROJECT}}. Each page has a type: a tutorial teaches, a how-to guide completes a task, a reference page lists facts, and an explanation page gives reasons. Tutorials and how-to guides come first, grouped by type. Reference and explanation pages follow, grouped by the system they describe. To write or review a page, start with the [documentation standards](../doc-standards/README.md), which also explain [why the documentation system works this way](../doc-standards/rationale.md).
 
-## Documentation
+## How-to guides
 
-How to write and check these docs.
+See the [how-to index](how-to/README.md).
 
-| Page | Type |
+| Page | System |
 | --- | --- |
-| [Check documentation](documentation/check-documentation.md) | How-to |
-| [Why the documentation system works this way](documentation/why-the-documentation-system-works-this-way.md) | Explanation |
+| [Check documentation](how-to/check-documentation.md) | Documentation |

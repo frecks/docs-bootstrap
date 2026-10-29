@@ -7,7 +7,7 @@ The items come from [Diátaxis](https://diataxis.fr/), the [Write the Docs guide
 ## Purpose and type
 
 - [ ] The page serves one reader need, and its content matches the `type` in its frontmatter. See [structure.md](structure.md).
-- [ ] The page is in the directory of the area a reader would look in first.
+- [ ] The page is where its type belongs: a tutorial or how-to guide in `docs/tutorials/` or `docs/how-to/`, and any other page in the directory of the system a reader would look in first.
 - [ ] The title tells the reader what the page is for. A how-to title starts with a verb.
 - [ ] The first paragraph says what the page covers and who it's for.
 - [ ] Nothing in the page belongs in a different type, such as background in a how-to guide or steps in a reference page.
@@ -35,7 +35,7 @@ The items come from [Diátaxis](https://diataxis.fr/), the [Write the Docs guide
 
 - [ ] Facts aren't copied from another page. The page links to it instead.
 - [ ] Links between pages are relative. `scripts/docs-lint.sh` checks that each linked file and anchor exists.
-- [ ] The page is listed in `docs/README.md` with its type, and in its area's `README.md` if there is one.
+- [ ] The page is listed in `docs/README.md` with its type, and in its directory's `README.md` if there is one.
 
 ## Style judgment
 
