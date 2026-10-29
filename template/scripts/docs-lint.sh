@@ -252,6 +252,7 @@ for f in "${files[@]}"; do
     "")
       echo "$f: missing 'type' in frontmatter. Use tutorial, how-to, reference, or explanation. See doc-standards/structure.md."
       type_ok=0
+      continue
       ;;
     *)
       echo "$f: unknown type '$type'. Use tutorial, how-to, reference, or explanation."
